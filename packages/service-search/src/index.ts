@@ -127,6 +127,7 @@ export function apply(ctx: Context, config: Config) {
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
                         replySafetyCheckFails: config.replySafetyCheckFails,
+                        safetyBlockKeywords: config.safetyBlockKeywords,
                         variableService: ctx.chatluna.promptRenderer,
                         contextManager: ctx.chatluna.contextManager,
                         browserManager

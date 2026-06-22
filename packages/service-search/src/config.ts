@@ -8,6 +8,56 @@ export async function apply(ctx: Context, _config: Config) {
     modelSchema(ctx)
 }
 
+export const DEFAULT_SAFETY_BLOCK_KEYWORDS = [
+    '色情',
+    '黄色',
+    '黄文',
+    '肉文',
+    '车文',
+    '开车',
+    '成人内容',
+    '成人视频',
+    '成人网站',
+    'R18',
+    'NSFW',
+    '露骨描写',
+    '性描写',
+    '性器官描写',
+    '性行为描写',
+    '性幻想',
+    '约炮',
+    '性交易',
+    '色情服务',
+    '卖淫嫖娼',
+    '偷拍',
+    '私密影像',
+    '性暴力',
+    '强迫性行为',
+    '迷奸',
+    '性剥削',
+    '未成年人性化',
+    '敏感政治历史事件',
+    '政治运动',
+    '政治风波',
+    '群体性政治事件',
+    '争议性政治议题',
+    '反中国政府',
+    '组织政治行动',
+    '敏感政治资料',
+    '绕过政治审查',
+    '毒品',
+    '受管制药物',
+    '受管制化学品',
+    '危险化学品',
+    '化学武器',
+    '生物毒素',
+    '危险病原体',
+    '爆炸物',
+    '爆炸物前体',
+    '检测规避',
+    '监管规避'
+]
+
 export interface Config extends ChatLunaPlugin.Config {
     searchEngine: string[]
     topK: number
@@ -16,6 +66,7 @@ export interface Config extends ChatLunaPlugin.Config {
     multiSourceMode: 'average' | 'total'
     searchFailedPrompt: string
     replySafetyCheckFails?: string
+    safetyBlockKeywords: string[]
 
     serperApiKey: string
     serperCountry: string
@@ -83,7 +134,13 @@ export const Config: Schema<Config> = Schema.intersect([
         replySafetyCheckFails: Schema.string()
             .role('textarea')
             .default('')
-            .description('安全阻断时的固定回复内容，为空则不阻断')
+            .description('Fixed reply when safety blocking is triggered.'),
+        safetyBlockKeywords: Schema.array(Schema.string())
+            .role('table')
+            .default(DEFAULT_SAFETY_BLOCK_KEYWORDS)
+            .description(
+                'Keywords that block browsing/search before query generation.'
+            )
     }),
 
     Schema.object({
@@ -167,36 +224,41 @@ Rules:
 - Make the question self-contained and clear
 - Optimize for search engine queries with time-sensitivity in mind
 - Consider the current time: {time} when need formulating search queries
+- Before deciding the action, block requests that clearly match the configured safety keywords: {safetyBlockKeywords}
 - ALWAYS generate 2-3 different search keywords/phrases for multi-source verification
 - Do not add any explanations or additional content
 - Base your response on a comprehensive analysis of the chat history
 - Return your response in the following JSON format ONLY:
   {{
     "thought": "your reasoning about what to do with user input. Use the text language as the input",
+    "safety": "allow" | "block",
     "action": "skip" | "search" | "url",
     "content": ["string1", "string2", ...] (optional array of strings)
   }}
 
 Action types explanation:
 1. "skip" - Use when the question doesn't require an internet search (e.g., personal opinions, simple calculations, or information already provided in the chat history)
-   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "action": "skip" }}
+   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "safety": "allow", "action": "skip", "content": [] }}
 
 2. "search" - Use when you need to generate search-engine-friendly questions
    Example: For "What's the weather like in Tokyo and New York?"
-   {{ "thought": "This requires checking current weather in two different cities as of {time}", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
+   {{ "thought": "This requires checking current weather in two different cities as of {time}", "safety": "allow", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
 
 3. "url" - Use when the message contains one or more URLs that should be browsed
    Example: For "Can you summarize the information from https://example.com/article and https://example.org/data?"
-   {{ "thought": "This requires browsing two specific URLs to gather information", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
+   {{ "thought": "This requires browsing two specific URLs to gather information", "safety": "allow", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
 
 IMPORTANT:
 - Your JSON response MUST be in the same language as the follow up input. This is crucial for maintaining context and accuracy.
+- If safety is "block", action MUST be "skip" and content MUST be [].
 - For time-sensitive queries (news, weather, events, etc.), ALWAYS include the current time {time} in your search queries.
 - ALWAYS generate multiple (2-3) search queries for better coverage and verification from different sources.
 
 Chat History:
 {chat_history}
 Current Time: {time}
+Safety Block Keywords:
+{safetyBlockKeywords}
 Follow-up Input: {question}
 JSON Response:`
             ),

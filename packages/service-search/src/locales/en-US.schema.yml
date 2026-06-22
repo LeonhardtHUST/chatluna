@@ -15,6 +15,8 @@ $inner:
               - 'Balanced mode. Strikes a balance between information retrieval and information quality.'
               - 'Quality mode. Focuses on obtaining high-quality information.'
       searchThreshold: 'Similarity threshold for search content. Higher values mean more likely to search.'
+      replySafetyCheckFails: 'Fixed reply when safety blocking is triggered.'
+      safetyBlockKeywords: 'Keywords that block browsing/search before query generation.'
       multiSourceMode:
           $desc: 'Multi-source mode.'
           $inner:

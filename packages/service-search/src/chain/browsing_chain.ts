@@ -59,6 +59,7 @@ export interface ChatLunaBrowsingChainInput {
     contextualCompressionPrompt?: string
     searchFailedPrompt: string
     replySafetyCheckFails?: string
+    safetyBlockKeywords: string[]
     variableService: ChatLunaPromptRenderService
     browserManager?: BrowserManager
 }
@@ -105,6 +106,8 @@ export class ChatLunaBrowsingChain
 
     replySafetyCheckFails?: string
 
+    safetyBlockKeywords: string[]
+
     private _toolMask?: ToolMask
 
     constructor({
@@ -125,7 +128,8 @@ export class ChatLunaBrowsingChain
         summaryModel,
         contextualCompressionPrompt,
         contextualCompressionChain,
-        replySafetyCheckFails
+        replySafetyCheckFails,
+        safetyBlockKeywords
     }: ChatLunaBrowsingChainInput & {
         chain: ChatLunaLLMChain
         formatQuestionChain: ChatLunaLLMChain
@@ -147,6 +151,7 @@ export class ChatLunaBrowsingChain
         this.searchFailedPrompt = searchFailedPrompt
         this.newQuestionPrompt = newQuestionPrompt
         this.replySafetyCheckFails = replySafetyCheckFails
+        this.safetyBlockKeywords = safetyBlockKeywords
         this.variableService = variableService
         this.browserManager = browserManager
         this.searchPrompt = searchPrompt
@@ -175,6 +180,7 @@ export class ChatLunaBrowsingChain
             summaryType,
             searchFailedPrompt,
             replySafetyCheckFails,
+            safetyBlockKeywords,
             variableService,
             contextManager,
             browserManager,
@@ -220,6 +226,7 @@ export class ChatLunaBrowsingChain
             thoughtMessage,
             searchFailedPrompt,
             replySafetyCheckFails,
+            safetyBlockKeywords,
             searchPrompt,
             newQuestionPrompt,
             chain,
@@ -275,6 +282,26 @@ export class ChatLunaBrowsingChain
         })
         requests['variables_hide'] = requests['variables']
 
+        const input = getMessageContent(message.content)
+        const hit = this.safetyBlockKeywords.find((keyword) => {
+            const word = keyword.trim()
+            return (
+                word.length > 0 &&
+                input.toLocaleLowerCase().includes(word.toLocaleLowerCase())
+            )
+        })
+
+        if (hit) {
+            logger?.debug(`blocked response: keyword ${hit}`)
+            return {
+                message: new AIMessage(
+                    this.replySafetyCheckFails?.length > 0
+                        ? this.replySafetyCheckFails
+                        : 'Request blocked by safety policy.'
+                )
+            }
+        }
+
         // recreate questions
 
         const newQuestion = (
@@ -285,7 +312,8 @@ export class ChatLunaBrowsingChain
                         chatHistory.slice(-6)
                     ),
                     time: new Date().toISOString(),
-                    question: getMessageContent(message.content),
+                    question: input,
+                    safetyBlockKeywords: this.safetyBlockKeywords.join('\n'),
                     temperature: 0,
                     signal
                 },
