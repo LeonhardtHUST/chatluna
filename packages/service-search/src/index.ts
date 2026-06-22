@@ -126,6 +126,7 @@ export function apply(ctx: Context, config: Config) {
                                 ? config.contextualCompressionPrompt
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
+                        replySafetyCheckFails: config.replySafetyCheckFails,
                         variableService: ctx.chatluna.promptRenderer,
                         contextManager: ctx.chatluna.contextManager,
                         browserManager

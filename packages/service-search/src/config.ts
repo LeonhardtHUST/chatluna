@@ -15,6 +15,7 @@ export interface Config extends ChatLunaPlugin.Config {
     summaryModel: string
     multiSourceMode: 'average' | 'total'
     searchFailedPrompt: string
+    replySafetyCheckFails?: string
 
     serperApiKey: string
     serperCountry: string
@@ -78,7 +79,11 @@ export const Config: Schema<Config> = Schema.intersect([
         summaryModel: Schema.dynamic('model').default('empty'),
 
         searchThreshold: Schema.percent().step(0.01).default(0.25),
-        contextualCompression: Schema.boolean().default(false)
+        contextualCompression: Schema.boolean().default(false),
+        replySafetyCheckFails: Schema.string()
+            .role('textarea')
+            .default('')
+            .description('安全阻断时的固定回复内容，为空则不阻断')
     }),
 
     Schema.object({

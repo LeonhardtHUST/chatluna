@@ -58,6 +58,7 @@ export interface ChatLunaBrowsingChainInput {
     newQuestionPrompt: string
     contextualCompressionPrompt?: string
     searchFailedPrompt: string
+    replySafetyCheckFails?: string
     variableService: ChatLunaPromptRenderService
     browserManager?: BrowserManager
 }
@@ -102,6 +103,8 @@ export class ChatLunaBrowsingChain
 
     browserManager?: BrowserManager
 
+    replySafetyCheckFails?: string
+
     private _toolMask?: ToolMask
 
     constructor({
@@ -121,7 +124,8 @@ export class ChatLunaBrowsingChain
         browserManager,
         summaryModel,
         contextualCompressionPrompt,
-        contextualCompressionChain
+        contextualCompressionChain,
+        replySafetyCheckFails
     }: ChatLunaBrowsingChainInput & {
         chain: ChatLunaLLMChain
         formatQuestionChain: ChatLunaLLMChain
@@ -142,6 +146,7 @@ export class ChatLunaBrowsingChain
         this.thoughtMessage = thoughtMessage
         this.searchFailedPrompt = searchFailedPrompt
         this.newQuestionPrompt = newQuestionPrompt
+        this.replySafetyCheckFails = replySafetyCheckFails
         this.variableService = variableService
         this.browserManager = browserManager
         this.searchPrompt = searchPrompt
@@ -169,6 +174,7 @@ export class ChatLunaBrowsingChain
             newQuestionPrompt,
             summaryType,
             searchFailedPrompt,
+            replySafetyCheckFails,
             variableService,
             contextManager,
             browserManager,
@@ -213,6 +219,7 @@ export class ChatLunaBrowsingChain
             preset,
             thoughtMessage,
             searchFailedPrompt,
+            replySafetyCheckFails,
             searchPrompt,
             newQuestionPrompt,
             chain,
@@ -291,6 +298,26 @@ export class ChatLunaBrowsingChain
         const searchAction = parseSearchAction(newQuestion)
 
         logger?.debug(`action: ${JSON.stringify(searchAction)}`)
+
+        // safety check — block if LLM flagged the content
+
+        if (
+            (searchAction as SearchAction & { safety?: string }).safety ===
+            'block'
+        ) {
+            if (
+                this.replySafetyCheckFails != null &&
+                this.replySafetyCheckFails.length > 0
+            ) {
+                logger?.debug(
+                    'blocked response: replySafetyCheckFails provided'
+                )
+                return {
+                    message: new AIMessage(this.replySafetyCheckFails)
+                }
+            }
+            // empty/undefined replySafetyCheckFails → fall through to normal generation
+        }
 
         // search questions
 
