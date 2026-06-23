@@ -293,7 +293,13 @@ export class ChatLunaBrowsingChain
         requests['variables_hide'] = requests['variables']
 
         const input = getMessageContent(message.content)
-        const hit = this._findBlockHit(input)
+        const clean = extractQuestion(input, this.botName)
+        const date = new Date().toISOString().slice(0, 10)
+
+        logger?.debug(`[search-service] raw question: ${input}`)
+        logger?.debug(`[search-service] clean question: ${clean}`)
+
+        const hit = this._findBlockHit(clean)
 
         if (hit) {
             logger?.debug(`blocked response: keyword ${hit}`)
@@ -306,6 +312,30 @@ export class ChatLunaBrowsingChain
             }
         }
 
+        const fixedAction = fixedSearchAction(clean, date)
+
+        if (fixedAction != null) {
+            logger?.debug(`action: ${JSON.stringify(fixedAction)}`)
+            await this._search(
+                fixedAction,
+                message,
+                chatHistory,
+                session,
+                events,
+                conversationId,
+                signal
+            )
+
+            return await this._answer(
+                requests,
+                stream,
+                signal,
+                session,
+                maxToken,
+                events
+            )
+        }
+
         // recreate questions
 
         const newQuestion = (
@@ -315,8 +345,8 @@ export class ChatLunaBrowsingChain
                     chat_history: JSON.stringify(
                         formatChatHistoryAsString(chatHistory.slice(-6))
                     ),
-                    time: new Date().toISOString().slice(0, 10),
-                    question: JSON.stringify(input),
+                    time: date,
+                    question: JSON.stringify(clean),
                     safetyBlockKeywords: this.safetyBlockKeywords.join('\n'),
                     temperature: 0,
                     signal
@@ -377,6 +407,24 @@ export class ChatLunaBrowsingChain
 
         // format and call
 
+        return await this._answer(
+            requests,
+            stream,
+            signal,
+            session,
+            maxToken,
+            events
+        )
+    }
+
+    private async _answer(
+        requests: ChainValues,
+        stream: ChatLunaLLMCallArg['stream'],
+        signal: AbortSignal,
+        session: Session,
+        maxToken: ChatLunaLLMCallArg['maxToken'],
+        events: ChatLunaLLMCallArg['events']
+    ) {
         const finalResponse = await callChatLunaChain(
             this.chain,
             {
@@ -629,6 +677,55 @@ function formatSearchResults(results: SearchResultLike[]) {
                 .join(', ')
         )
         .join('\n\n')
+}
+
+function extractQuestion(input: string, botName: string) {
+    const raw = input.match(/Raw User Input:\s*([\s\S]*)$/)?.[1] ?? input
+    const text = raw.trim().replace(/^@\S+\s*/, '')
+    const name = [botName, 'Leo', 'Leonbot'].find(
+        (item) =>
+            item.length > 0 &&
+            text.toLocaleLowerCase().startsWith(item.toLocaleLowerCase())
+    )
+
+    if (name == null) return text
+
+    return text.slice(name.length).replace(/^\s*[:,，：]?\s*/, '').trim()
+}
+
+function fixedSearchAction(input: string, date: string): SearchAction | null {
+    const urls = input
+        .match(/https?:\/\/\S+/gi)
+        ?.map((url) => url.replace(/[),，。；;]+$/, ''))
+        .slice(0, 3)
+
+    if (urls != null && urls.length > 0) {
+        return {
+            thought: 'current input contains url',
+            safety: 'allow',
+            action: 'url',
+            content: urls
+        }
+    }
+
+    if (
+        /搜索|查询|查找|查一下|上网|联网|浏览|看一下|帮我看|帮我找|找资料|核实|验证|是否属实|是真的吗|来源|出处|原文|官网|公告|通知|新闻|动态|进展|近况|最新|最近|当前|现在|今天|本周|本月|今年|刚发布|刚更新/.test(
+            input
+        )
+    ) {
+        return {
+            thought: 'current input matches search trigger',
+            safety: 'allow',
+            action: 'search',
+            content: [
+                `${input} ${date}`,
+                `${input} 官网 公告 新闻 ${date}`,
+                `${input} 来源 原文 ${date}`
+            ]
+        }
+    }
+
+    return null
 }
 
 function raceAbort<T>(promise: Promise<T>, signal: AbortSignal) {
