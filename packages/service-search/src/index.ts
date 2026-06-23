@@ -27,7 +27,7 @@ export let logger: Logger
 export function apply(ctx: Context, config: Config) {
     logger = createLogger(ctx, 'chatluna-search-service')
     config.safetyBlockKeywords =
-        config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS
+        config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n')
 
     ctx.on('ready', async () => {
         const keywordExtractModel =
@@ -133,7 +133,13 @@ export function apply(ctx: Context, config: Config) {
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
                         replySafetyCheckFails: config.replySafetyCheckFails,
-                        safetyBlockKeywords: config.safetyBlockKeywords,
+                        safetyBlockKeywords: (
+                            Array.isArray(config.safetyBlockKeywords)
+                                ? config.safetyBlockKeywords
+                                : config.safetyBlockKeywords.split(/\r?\n/)
+                        )
+                            .map((keyword) => keyword.trim())
+                            .filter((keyword) => keyword.length > 0),
                         variableService: ctx.chatluna.promptRenderer,
                         contextManager: ctx.chatluna.contextManager,
                         browserManager

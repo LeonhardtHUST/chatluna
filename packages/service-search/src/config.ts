@@ -66,7 +66,7 @@ export interface Config extends ChatLunaPlugin.Config {
     multiSourceMode: 'average' | 'total'
     searchFailedPrompt: string
     replySafetyCheckFails?: string
-    safetyBlockKeywords: string[]
+    safetyBlockKeywords: string
 
     serperApiKey: string
     serperCountry: string
@@ -135,11 +135,11 @@ export const Config: Schema<Config> = Schema.intersect([
             .role('textarea')
             .default('')
             .description('Fixed reply when safety blocking is triggered.'),
-        safetyBlockKeywords: Schema.array(Schema.string())
-            .role('table')
-            .default(DEFAULT_SAFETY_BLOCK_KEYWORDS)
+        safetyBlockKeywords: Schema.string()
+            .role('textarea', { rows: [4, 12] })
+            .default(DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n'))
             .description(
-                'Keywords that block browsing/search before query generation.'
+                'Keywords that block browsing/search before query generation, one per line.'
             )
     }),
 
