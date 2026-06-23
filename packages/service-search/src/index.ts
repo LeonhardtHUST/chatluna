@@ -8,6 +8,7 @@ import { createLogger } from 'koishi-plugin-chatluna/utils/logger'
 import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
+    DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS,
     DEFAULT_SAFETY_BLOCK_KEYWORDS,
     apply as configApply
 } from './config'
@@ -26,8 +27,20 @@ export let logger: Logger
 
 export function apply(ctx: Context, config: Config) {
     logger = createLogger(ctx, 'chatluna-search-service')
-    config.safetyBlockKeywords =
-        config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n')
+    if (
+        config.safetyBlockKeywordGroups == null ||
+        config.safetyBlockKeywordGroups.length < 1
+    ) {
+        const legacy = Array.isArray(config.safetyBlockKeywords)
+            ? config.safetyBlockKeywords.join('\n')
+            : config.safetyBlockKeywords
+
+        config.safetyBlockKeywordGroups =
+            legacy?.trim().length > 0 &&
+            legacy !== DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n')
+                ? [{ name: 'Legacy', keywords: legacy }]
+                : DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS
+    }
 
     ctx.on('ready', async () => {
         const keywordExtractModel =
@@ -133,11 +146,10 @@ export function apply(ctx: Context, config: Config) {
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
                         replySafetyCheckFails: config.replySafetyCheckFails,
-                        safetyBlockKeywords: (
-                            Array.isArray(config.safetyBlockKeywords)
-                                ? config.safetyBlockKeywords
-                                : config.safetyBlockKeywords.split(/\r?\n/)
-                        )
+                        safetyBlockKeywords: config.safetyBlockKeywordGroups
+                            .flatMap((group) =>
+                                group.keywords.split(/\r?\n/)
+                            )
                             .map((keyword) => keyword.trim())
                             .filter((keyword) => keyword.length > 0),
                         variableService: ctx.chatluna.promptRenderer,

@@ -8,55 +8,80 @@ export async function apply(ctx: Context, _config: Config) {
     modelSchema(ctx)
 }
 
-export const DEFAULT_SAFETY_BLOCK_KEYWORDS = [
-    '色情',
-    '黄色',
-    '黄文',
-    '肉文',
-    '车文',
-    '开车',
-    '成人内容',
-    '成人视频',
-    '成人网站',
-    'R18',
-    'NSFW',
-    '露骨描写',
-    '性描写',
-    '性器官描写',
-    '性行为描写',
-    '性幻想',
-    '约炮',
-    '性交易',
-    '色情服务',
-    '卖淫嫖娼',
-    '偷拍',
-    '私密影像',
-    '性暴力',
-    '强迫性行为',
-    '迷奸',
-    '性剥削',
-    '未成年人性化',
-    '敏感政治历史事件',
-    '政治运动',
-    '政治风波',
-    '群体性政治事件',
-    '争议性政治议题',
-    '反中国政府',
-    '组织政治行动',
-    '敏感政治资料',
-    '绕过政治审查',
-    '毒品',
-    '受管制药物',
-    '受管制化学品',
-    '危险化学品',
-    '化学武器',
-    '生物毒素',
-    '危险病原体',
-    '爆炸物',
-    '爆炸物前体',
-    '检测规避',
-    '监管规避'
+export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
+    {
+        name: 'Adult sexual content',
+        keywords: [
+            '色情',
+            '黄色',
+            '黄文',
+            '肉文',
+            '车文',
+            '开车',
+            '成人内容',
+            '成人视频',
+            '成人网站',
+            'R18',
+            'NSFW',
+            '露骨描写',
+            '性描写',
+            '性器官描写',
+            '性行为描写',
+            '性幻想',
+            '约炮',
+            '性交易',
+            '色情服务',
+            '卖淫嫖娼',
+            '偷拍',
+            '私密影像',
+            '性暴力',
+            '强迫性行为',
+            '迷奸',
+            '性剥削',
+            '未成年人性化'
+        ].join('\n')
+    },
+    {
+        name: 'Sensitive political content',
+        keywords: [
+            '敏感政治历史事件',
+            '政治运动',
+            '政治风波',
+            '群体性政治事件',
+            '争议性政治议题',
+            '反中国政府',
+            '组织政治行动',
+            '敏感政治资料',
+            '绕过政治审查'
+        ].join('\n')
+    },
+    {
+        name: 'Regulated dangerous goods',
+        keywords: [
+            '毒品',
+            '受管制药物',
+            '受管制化学品',
+            '危险化学品',
+            '化学武器',
+            '生物毒素',
+            '危险病原体',
+            '爆炸物',
+            '爆炸物前体',
+            '检测规避',
+            '监管规避'
+        ].join('\n')
+    }
 ]
+
+export const DEFAULT_SAFETY_BLOCK_KEYWORDS =
+    DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS.flatMap((group) =>
+        group.keywords.split('\n')
+    )
+
+export interface SafetyBlockKeywordGroup {
+    name: string
+    keywords: string
+}
 
 export interface Config extends ChatLunaPlugin.Config {
     searchEngine: string[]
@@ -66,7 +91,8 @@ export interface Config extends ChatLunaPlugin.Config {
     multiSourceMode: 'average' | 'total'
     searchFailedPrompt: string
     replySafetyCheckFails?: string
-    safetyBlockKeywords: string
+    safetyBlockKeywordGroups: SafetyBlockKeywordGroup[]
+    safetyBlockKeywords?: string | string[]
 
     serperApiKey: string
     serperCountry: string
@@ -135,11 +161,18 @@ export const Config: Schema<Config> = Schema.intersect([
             .role('textarea')
             .default('')
             .description('Fixed reply when safety blocking is triggered.'),
-        safetyBlockKeywords: Schema.string()
-            .role('textarea', { rows: [4, 12] })
-            .default(DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n'))
+        safetyBlockKeywordGroups: Schema.array(
+            Schema.object({
+                name: Schema.string().default(''),
+                keywords: Schema.string()
+                    .role('textarea', { rows: [3, 8] })
+                    .default('')
+            })
+        )
+            .role('table')
+            .default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS)
             .description(
-                'Keywords that block browsing/search before query generation, one per line.'
+                'Keyword groups that block browsing/search before query generation. Put one keyword per line in each group.'
             )
     }),
 
