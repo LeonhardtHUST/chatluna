@@ -2,6 +2,7 @@ import { Awaitable, Computed, Schema, Time } from 'koishi'
 
 export interface Config {
     botNames: string[]
+    truncateBotNames: boolean
     isNickname: boolean
     isNickNameWithContent: boolean
     allowPrivate: boolean
@@ -56,6 +57,7 @@ export interface Config {
 export const Config: Schema<Config> = Schema.intersect([
     Schema.object({
         botNames: Schema.array(Schema.string()).default(['香草']),
+        truncateBotNames: Schema.boolean().default(false),
         isNickname: Schema.boolean().default(true),
         isNickNameWithContent: Schema.boolean().default(false)
     }),

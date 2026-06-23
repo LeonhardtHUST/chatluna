@@ -1,6 +1,7 @@
 $inner:
     - $desc: bot 配置
       botNames: 设置 bot 的名称。(只有第一个名称是实际的 bot 名称，其他名称仅用于触发对话)
+      truncateBotNames: 在发送给模型前，从消息开头移除匹配到的 bot 名称。
       isNickname: 是否允许在开头匹配 bot 配置中的昵称来触发对话。
       isNickNameWithContent: 是否允许在对话内容里任意匹配 bot 配置中的昵称来触发对话。
 

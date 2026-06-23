@@ -1,6 +1,7 @@
 $inner:
     - $desc: Bot Configuration
       botNames: Set the bot's name. (Only the first name is the actual bot name; other names are only used to trigger conversations.)
+      truncateBotNames: Remove the matched bot name from the beginning of the message before sending it to the model.
       isNickname: Allow matching bot nickname at the beginning of a message to trigger a conversation.
       isNickNameWithContent: Allow matching bot nickname anywhere in the message content to trigger a conversation.
 

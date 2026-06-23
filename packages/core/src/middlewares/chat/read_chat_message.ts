@@ -62,6 +62,42 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
             }
 
             if (context.command == null) {
+                if (config.truncateBotNames) {
+                    const text = h.select(message as h[], 'text').join('')
+                    const name = config.botNames
+                        .filter((item) => item.length > 0)
+                        .filter((item) => text.startsWith(item))
+                        .sort((a, b) => b.length - a.length)[0]
+
+                    if (name != null) {
+                        let skip = name.length
+                        const next: h[] = []
+
+                        for (const element of message as h[]) {
+                            if (element.type !== 'text') {
+                                next.push(element)
+                                continue
+                            }
+
+                            const content = String(element.attrs.content ?? '')
+                            if (skip >= content.length) {
+                                skip -= content.length
+                                continue
+                            }
+
+                            next.push(
+                                h('text', {
+                                    ...element.attrs,
+                                    content: content.slice(skip)
+                                })
+                            )
+                            skip = 0
+                        }
+
+                        message = next
+                    }
+                }
+
                 const text = h.select(message as h[], 'text').join('')
                 const parsed = parsePresetLaneInput(
                     text,
