@@ -32,12 +32,12 @@ export function apply(ctx: Context, config: Config) {
         config.safetyBlockKeywordGroups.length < 1
     ) {
         const legacy = Array.isArray(config.safetyBlockKeywords)
-            ? config.safetyBlockKeywords.join('\n')
+            ? config.safetyBlockKeywords.join(',')
             : config.safetyBlockKeywords
 
         config.safetyBlockKeywordGroups =
             legacy?.trim().length > 0 &&
-            legacy !== DEFAULT_SAFETY_BLOCK_KEYWORDS.join('\n')
+            legacy !== DEFAULT_SAFETY_BLOCK_KEYWORDS.join(',')
                 ? [{ name: 'Legacy', keywords: legacy }]
                 : DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS
     }
@@ -148,7 +148,7 @@ export function apply(ctx: Context, config: Config) {
                         replySafetyCheckFails: config.replySafetyCheckFails,
                         safetyBlockKeywords: config.safetyBlockKeywordGroups
                             .flatMap((group) =>
-                                group.keywords.split(/\r?\n/)
+                                group.keywords.split(/[,，\r\n]+/)
                             )
                             .map((keyword) => keyword.trim())
                             .filter((keyword) => keyword.length > 0),

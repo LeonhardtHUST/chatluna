@@ -52,7 +52,7 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '儿童性',
             '儿童裸',
             '儿童黄'
-        ].join('\n')
+        ].join(',')
     },
     {
         name: 'L0 Regulated dangerous goods',
@@ -96,7 +96,7 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '替代前体',
             '替代管制物',
             '替代违禁药'
-        ].join('\n')
+        ].join(',')
     },
     {
         name: 'L0 China political high risk',
@@ -128,7 +128,7 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '敏感政治资料',
             '敏感政治事件',
             '政治敏感时间线'
-        ].join('\n')
+        ].join(',')
     },
     {
         name: 'L0 Terrorism and violence',
@@ -147,13 +147,13 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '怎么杀人',
             '怎么投毒',
             '怎么爆破'
-        ].join('\n')
+        ].join(',')
     }
 ]
 
 export const DEFAULT_SAFETY_BLOCK_KEYWORDS =
     DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS.flatMap((group) =>
-        group.keywords.split('\n')
+        group.keywords.split(',')
     )
 
 export interface SafetyBlockKeywordGroup {
@@ -250,7 +250,7 @@ export const Config: Schema<Config> = Schema.intersect([
             .role('table')
             .default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS)
             .description(
-                'Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group.'
+                'Hard-block keyword groups that block browsing/search before query generation. Separate keywords with half-width commas in each group.'
             )
     }),
 
