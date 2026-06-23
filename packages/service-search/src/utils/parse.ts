@@ -91,23 +91,108 @@ export function removeProperty<T extends object, K extends keyof T>(
 export function parseSearchAction(content: string): SearchAction {
     const action = preprocessContent(content)
     const parsed = tryParseJSON<SearchAction>(action)
+    const result =
+        parsed ?? tryParseJSON<SearchAction>(attemptToFixJSON(action))
 
-    if (parsed) return parsed
-
-    const fixed = tryParseJSON<SearchAction>(attemptToFixJSON(action))
-
-    if (fixed) return fixed
-
-    if (action.includes('[skip]')) {
+    if (action.includes('[skip]') || result == null) {
         return {
             action: 'skip',
-            thought: 'skip the search'
+            safety: 'allow',
+            thought: 'skip the search',
+            content: []
+        }
+    }
+
+    if (result.safety === 'block') {
+        return {
+            action: 'skip',
+            safety: 'block',
+            thought: result.thought ?? 'blocked by safety policy',
+            content: []
+        }
+    }
+
+    if (
+        result.safety != null &&
+        result.safety !== 'allow' &&
+        result.safety !== 'block'
+    ) {
+        return {
+            action: 'skip',
+            safety: 'allow',
+            thought: 'invalid router safety',
+            content: []
+        }
+    }
+
+    if (
+        result.action !== 'skip' &&
+        result.action !== 'search' &&
+        result.action !== 'url'
+    ) {
+        return {
+            action: 'skip',
+            safety: 'allow',
+            thought: 'invalid router action',
+            content: []
+        }
+    }
+
+    if (result.action === 'skip') {
+        return {
+            action: 'skip',
+            safety: 'allow',
+            thought: result.thought ?? 'skip the search',
+            content: []
+        }
+    }
+
+    if (!Array.isArray(result.content)) {
+        return {
+            action: 'skip',
+            safety: 'allow',
+            thought: 'invalid router content',
+            content: []
+        }
+    }
+
+    const items = result.content
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .slice(0, 3)
+
+    if (result.action === 'url') {
+        const urls = items.filter((item) => /^https?:\/\//i.test(item))
+
+        return urls.length > 0
+            ? {
+                  action: 'url',
+                  safety: 'allow',
+                  thought: result.thought ?? 'browse url',
+                  content: urls
+              }
+            : {
+                  action: 'skip',
+                  safety: 'allow',
+                  thought: 'invalid router url content',
+                  content: []
+              }
+    }
+
+    if (items.length > 0) {
+        return {
+            action: 'search',
+            safety: 'allow',
+            thought: result.thought ?? 'search the web',
+            content: items
         }
     }
 
     return {
-        action: 'search',
-        thought: action,
-        content: [action]
+        action: 'skip',
+        safety: 'allow',
+        thought: 'invalid router search content',
+        content: []
     }
 }

@@ -13,6 +13,7 @@ export enum SummaryType {
 
 export interface SearchAction {
     thought: string
+    safety?: 'allow' | 'block'
     action: 'url' | 'search' | 'skip'
     content?: string[]
 }

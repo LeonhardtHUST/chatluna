@@ -312,11 +312,11 @@ export class ChatLunaBrowsingChain
             await callChatLunaChain(
                 this.formatQuestionChain,
                 {
-                    chat_history: formatChatHistoryAsString(
-                        chatHistory.slice(-6)
+                    chat_history: JSON.stringify(
+                        formatChatHistoryAsString(chatHistory.slice(-6))
                     ),
-                    time: new Date().toISOString(),
-                    question: input,
+                    time: new Date().toISOString().slice(0, 10),
+                    question: JSON.stringify(input),
                     safetyBlockKeywords: this.safetyBlockKeywords.join('\n'),
                     temperature: 0,
                     signal
@@ -333,22 +333,15 @@ export class ChatLunaBrowsingChain
 
         // safety check — block if LLM flagged the content
 
-        if (
-            (searchAction as SearchAction & { safety?: string }).safety ===
-            'block'
-        ) {
-            if (
-                this.replySafetyCheckFails != null &&
-                this.replySafetyCheckFails.length > 0
-            ) {
-                logger?.debug(
-                    'blocked response: replySafetyCheckFails provided'
+        if (searchAction.safety === 'block') {
+            logger?.debug('blocked response: router safety block')
+            return {
+                message: new AIMessage(
+                    this.replySafetyCheckFails?.length > 0
+                        ? this.replySafetyCheckFails
+                        : 'Request blocked by safety policy.'
                 )
-                return {
-                    message: new AIMessage(this.replySafetyCheckFails)
-                }
             }
-            // empty/undefined replySafetyCheckFails → fall through to normal generation
         }
 
         if (Array.isArray(searchAction?.content)) {
