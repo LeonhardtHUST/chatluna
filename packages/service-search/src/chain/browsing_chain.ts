@@ -253,6 +253,16 @@ export class ChatLunaBrowsingChain
         }) as T
     }
 
+    private _findBlockHit(input: string) {
+        return this.safetyBlockKeywords.find((keyword) => {
+            const word = keyword.trim()
+            return (
+                word.length > 0 &&
+                input.toLocaleLowerCase().includes(word.toLocaleLowerCase())
+            )
+        })
+    }
+
     async call({
         message,
         stream,
@@ -283,13 +293,7 @@ export class ChatLunaBrowsingChain
         requests['variables_hide'] = requests['variables']
 
         const input = getMessageContent(message.content)
-        const hit = this.safetyBlockKeywords.find((keyword) => {
-            const word = keyword.trim()
-            return (
-                word.length > 0 &&
-                input.toLocaleLowerCase().includes(word.toLocaleLowerCase())
-            )
-        })
+        const hit = this._findBlockHit(input)
 
         if (hit) {
             logger?.debug(`blocked response: keyword ${hit}`)
@@ -345,6 +349,23 @@ export class ChatLunaBrowsingChain
                 }
             }
             // empty/undefined replySafetyCheckFails → fall through to normal generation
+        }
+
+        if (Array.isArray(searchAction?.content)) {
+            const queryHit = searchAction.content
+                .map((item) => this._findBlockHit(item))
+                .find((keyword) => keyword != null)
+
+            if (queryHit) {
+                logger?.debug(`blocked response: search keyword ${queryHit}`)
+                return {
+                    message: new AIMessage(
+                        this.replySafetyCheckFails?.length > 0
+                            ? this.replySafetyCheckFails
+                            : 'Request blocked by safety policy.'
+                    )
+                }
+            }
         }
 
         // search questions

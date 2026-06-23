@@ -479,7 +479,11 @@ const readBrowserText = new Function(
                 const text = a.textContent?.replace(/\s+/g, ' ').trim()
                 const href = a.getAttribute('href')
                 return text && href
-                    ? \`- [\${text}](\${new URL(href, location.href).href})\`
+                    ? '- [' +
+                          text +
+                          '](' +
+                          new URL(href, location.href).href +
+                          ')'
                     : ''
             })
             .filter(Boolean)

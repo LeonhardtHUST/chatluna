@@ -10,10 +10,10 @@ export async function apply(ctx: Context, _config: Config) {
 
 export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
     {
-        name: 'Adult sexual content',
+        name: 'L0 Adult sexual content',
         keywords: [
             '色情',
-            '黄色',
+            '黄色内容',
             '黄文',
             '肉文',
             '车文',
@@ -21,6 +21,7 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '成人内容',
             '成人视频',
             '成人网站',
+            '黄网站',
             'R18',
             'NSFW',
             '露骨描写',
@@ -29,46 +30,123 @@ export const DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
             '性行为描写',
             '性幻想',
             '约炮',
+            '一夜情资源',
             '性交易',
+            '卖淫',
+            '嫖娼',
             '色情服务',
-            '卖淫嫖娼',
             '偷拍',
             '私密影像',
-            '性暴力',
-            '强迫性行为',
             '迷奸',
+            '强奸',
+            '性暴力',
             '性剥削',
-            '未成年人性化'
+            '未成年性',
+            '未成年裸',
+            '未成年黄',
+            '未成年约',
+            '未成年调教',
+            '萝莉性',
+            '萝莉裸',
+            '萝莉黄',
+            '儿童性',
+            '儿童裸',
+            '儿童黄'
         ].join('\n')
     },
     {
-        name: 'Sensitive political content',
-        keywords: [
-            '敏感政治历史事件',
-            '政治运动',
-            '政治风波',
-            '群体性政治事件',
-            '争议性政治议题',
-            '反中国政府',
-            '组织政治行动',
-            '敏感政治资料',
-            '绕过政治审查'
-        ].join('\n')
-    },
-    {
-        name: 'Regulated dangerous goods',
+        name: 'L0 Regulated dangerous goods',
         keywords: [
             '毒品',
-            '受管制药物',
+            '制毒',
+            '吸毒',
+            '贩毒',
+            '冰毒',
+            '海洛因',
+            '大麻',
+            '摇头丸',
+            'K粉',
+            '氯胺酮',
+            '芬太尼',
+            '易制毒',
+            '前体',
             '受管制化学品',
-            '危险化学品',
-            '化学武器',
-            '生物毒素',
-            '危险病原体',
+            '受控药物',
+            '受管制药物',
+            '合成毒品',
+            '合成违禁药',
+            '合成爆炸物',
+            '提纯毒品',
+            '提纯违禁药',
+            '萃取毒品',
+            '萃取违禁药',
             '爆炸物',
-            '爆炸物前体',
-            '检测规避',
-            '监管规避'
+            '炸药',
+            '雷管',
+            '燃烧瓶',
+            '土炸弹',
+            '化学武器',
+            '生物武器',
+            '病原体扩增',
+            '培养病毒',
+            '绕过检测',
+            '绕过监管',
+            '绕过尿检',
+            '绕过毒检',
+            '替代前体',
+            '替代管制物',
+            '替代违禁药'
+        ].join('\n')
+    },
+    {
+        name: 'L0 China political high risk',
+        keywords: [
+            '敏感政治',
+            '敏感历史',
+            '政治风波',
+            '政治运动',
+            '群体性事件',
+            '群体事件',
+            '反党',
+            '反政府',
+            '颠覆国家政权',
+            '推翻政府',
+            '煽动颠覆',
+            '政治行动',
+            '分裂国家',
+            '民族分裂',
+            '台独',
+            '港独',
+            '疆独',
+            '藏独',
+            '绕过政治审查',
+            '绕过内容审查',
+            '绕过敏感词审查',
+            '规避政治审查',
+            '规避内容审查',
+            '规避敏感词审查',
+            '敏感政治资料',
+            '敏感政治事件',
+            '政治敏感时间线'
+        ].join('\n')
+    },
+    {
+        name: 'L0 Terrorism and violence',
+        keywords: [
+            '恐怖主义',
+            '极端组织',
+            '圣战',
+            '自杀式袭击',
+            '炸学校',
+            '炸地铁',
+            '大规模杀伤',
+            '教我杀人',
+            '教我放火',
+            '教我爆破',
+            '教我投毒',
+            '怎么杀人',
+            '怎么投毒',
+            '怎么爆破'
         ].join('\n')
     }
 ]
@@ -172,7 +250,7 @@ export const Config: Schema<Config> = Schema.intersect([
             .role('table')
             .default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS)
             .description(
-                'Keyword groups that block browsing/search before query generation. Put one keyword per line in each group.'
+                'Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group.'
             )
     }),
 
@@ -257,7 +335,7 @@ Rules:
 - Make the question self-contained and clear
 - Optimize for search engine queries with time-sensitivity in mind
 - Consider the current time: {time} when need formulating search queries
-- Before deciding the action, block requests that clearly match the configured safety keywords: {safetyBlockKeywords}
+- Before deciding the action, block requests that clearly match the configured hard-block keywords: {safetyBlockKeywords}
 - ALWAYS generate 2-3 different search keywords/phrases for multi-source verification
 - Do not add any explanations or additional content
 - Base your response on a comprehensive analysis of the chat history
@@ -290,7 +368,7 @@ IMPORTANT:
 Chat History:
 {chat_history}
 Current Time: {time}
-Safety Block Keywords:
+Hard Block Keywords:
 {safetyBlockKeywords}
 Follow-up Input: {question}
 JSON Response:`
