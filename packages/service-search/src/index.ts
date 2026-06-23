@@ -6,7 +6,11 @@ import { PlatformService } from 'koishi-plugin-chatluna/llm-core/platform/servic
 import { ChatLunaPlugin } from 'koishi-plugin-chatluna/services/chat'
 import { createLogger } from 'koishi-plugin-chatluna/utils/logger'
 import { ChatLunaBrowsingChain } from './chain/browsing_chain'
-import { Config, apply as configApply } from './config'
+import {
+    Config,
+    DEFAULT_SAFETY_BLOCK_KEYWORDS,
+    apply as configApply
+} from './config'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
 import { SearchManager } from './provide'
 import { providerPlugin } from './plugin'
@@ -22,6 +26,8 @@ export let logger: Logger
 
 export function apply(ctx: Context, config: Config) {
     logger = createLogger(ctx, 'chatluna-search-service')
+    config.safetyBlockKeywords =
+        config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS
 
     ctx.on('ready', async () => {
         const keywordExtractModel =
