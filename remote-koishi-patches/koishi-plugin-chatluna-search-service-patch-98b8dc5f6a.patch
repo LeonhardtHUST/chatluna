@@ -1,0 +1,779 @@
+diff --git a/lib/chain/browsing_chain.d.ts b/lib/chain/browsing_chain.d.ts
+index 32e8867a1b06fbdae488fa6560ddb2e3227e863e..40fe8c1e5ae78cae4fdb1177c1b6f5f60eaafa2a 100644
+--- a/lib/chain/browsing_chain.d.ts
++++ b/lib/chain/browsing_chain.d.ts
+@@ -60,12 +60,13 @@ export declare class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper imple
+         contextManager: ChatLunaContextManagerService;
+     }): ChatLunaBrowsingChain;
+     private _selectTool;
++    private _findBlockHit;
+     call({ message, stream, events, conversationId, session, variables, maxToken, signal, toolMask }: ChatLunaLLMCallArg): Promise<ChainValues>;
+     private _search;
+     private _searchQuestions;
+     private _browseUrls;
+     private _appendSearchPrompt;
+-    get model(): any;
++    get model(): ChatLunaChatModel;
+ }
+ interface ChatLunaToolWrapper {
+     name: string;
+diff --git a/lib/index.cjs b/lib/index.cjs
+index fbfb8581528c9065c748493ac4bcdd9cf428e580..746821be4feef9b2ede2300b91ed23e99154ac84 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -33,14 +33,14 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
+ // src/locales/zh-CN.schema.yml
+ var require_zh_CN_schema = __commonJS({
+   "src/locales/zh-CN.schema.yml"(exports2, module2) {
+-    module2.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
++    module2.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "在生成搜索前触发阻断的硬拦截关键词分组。每组内每行一个关键词。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
+   }
+ });
+ 
+ // src/locales/en-US.schema.yml
+ var require_en_US_schema = __commonJS({
+   "src/locales/en-US.schema.yml"(exports2, module2) {
+-    module2.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "Keyword groups that block browsing/search before query generation. Put one keyword per line in each group.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
++    module2.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
+   }
+ });
+ 
+@@ -140,24 +140,6 @@ function parseSearchAction(content) {
+   };
+ }
+ __name(parseSearchAction, "parseSearchAction");
+-function clipDebugValue(value, limit = 3e3) {
+-  const text = typeof value === "string" ? value : JSON.stringify(value);
+-  if (text == null) return "";
+-  return text.length > limit ? `${text.slice(0, limit)}...<truncated ${text.length - limit} chars>` : text;
+-}
+-__name(clipDebugValue, "clipDebugValue");
+-async function formatRouterPromptForDebug(chain, input) {
+-  try {
+-    const prompt = chain?.prompt;
+-    if (typeof prompt?.format === "function") {
+-      return await prompt.format(input);
+-    }
+-  } catch (error) {
+-    logger?.debug(`[search-service] failed to render router prompt for debug: ${error?.message ?? error}`);
+-  }
+-  return "";
+-}
+-__name(formatRouterPromptForDebug, "formatRouterPromptForDebug");
+ 
+ // src/chain/browsing_chain.ts
+ var import_error = require("koishi-plugin-chatluna/utils/error");
+@@ -299,6 +281,12 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+       embeddings: this.embeddings
+     });
+   }
++  _findBlockHit(input) {
++    return this.safetyBlockKeywords.find((keyword) => {
++      const word = keyword.trim();
++      return word.length > 0 && input.toLocaleLowerCase().includes(word.toLocaleLowerCase());
++    });
++  }
+   async call({
+     message,
+     stream,
+@@ -322,48 +310,54 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+       prompt: (0, import_string.getMessageContent)(message.content)
+     });
+     requests["variables_hide"] = requests["variables"];
+-    const rawQuestion = (0, import_string.getMessageContent)(message.content);
+-    const normalizedQuestion = rawQuestion.trim();
+-    const routerInput = {
+-      chat_history: formatChatHistoryAsString(
+-        chatHistory.slice(-6)
+-      ),
+-      time: (/* @__PURE__ */ new Date()).toISOString(),
+-      question: rawQuestion,
+-      safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
+-      temperature: 0,
+-      signal
+-    };
+-    const hit = this.safetyBlockKeywords.find((keyword) => {
+-      const word = keyword.trim();
+-      return word.length > 0 && rawQuestion.toLocaleLowerCase().includes(word.toLocaleLowerCase());
+-    });
++    const input = (0, import_string.getMessageContent)(message.content);
++    const hit = this._findBlockHit(input);
+     if (hit) {
+-      logger?.debug(`[search-service] blocked response: keyword ${hit}`);
++      logger?.debug(`blocked response: keyword ${hit}`);
+       return {
+-        message: new import_messages.AIMessage(this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy.")
++        message: new import_messages.AIMessage(
++          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
++        )
+       };
+     }
+-    logger?.debug(`[search-service] raw question: ${clipDebugValue(rawQuestion)}`);
+-    logger?.debug(`[search-service] normalized question: ${clipDebugValue(normalizedQuestion)}`);
+-    logger?.debug(`[search-service] rendered router prompt: ${clipDebugValue(await formatRouterPromptForDebug(this.formatQuestionChain, routerInput))}`);
+     const newQuestion = (await (0, import_base.callChatLunaChain)(
+       this.formatQuestionChain,
+-      routerInput,
++      {
++        chat_history: formatChatHistoryAsString(
++          chatHistory.slice(-6)
++        ),
++        time: (/* @__PURE__ */ new Date()).toISOString(),
++        question: input,
++        safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
++        temperature: 0,
++        signal
++      },
+       {
+         "llm-used-token-count": events["llm-used-token-count"]
+       }
+     ))["text"];
+     const searchAction = parseSearchAction(newQuestion);
+-    logger?.debug(`[search-service] router raw output: ${clipDebugValue(newQuestion)}`);
+-    logger?.debug(`[search-service] parsed action: ${clipDebugValue(searchAction)}`);
++    logger?.debug(`action: ${JSON.stringify(searchAction)}`);
+     if (searchAction.safety === "block") {
+-      logger?.debug(
+-        "blocked response: router safety block"
+-      );
+-      return {
+-        message: new import_messages.AIMessage(this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy.")
+-      };
++      if (this.replySafetyCheckFails != null && this.replySafetyCheckFails.length > 0) {
++        logger?.debug(
++          "blocked response: replySafetyCheckFails provided"
++        );
++        return {
++          message: new import_messages.AIMessage(this.replySafetyCheckFails)
++        };
++      }
++    }
++    if (Array.isArray(searchAction?.content)) {
++      const queryHit = searchAction.content.map((item) => this._findBlockHit(item)).find((keyword) => keyword != null);
++      if (queryHit) {
++        logger?.debug(`blocked response: search keyword ${queryHit}`);
++        return {
++          message: new import_messages.AIMessage(
++            this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
++          )
++        };
++      }
+     }
+     if (searchAction != null && searchAction.action !== "skip") {
+       await this._search(
+@@ -570,16 +564,144 @@ async function apply(ctx, _config) {
+ __name(apply, "apply");
+ var DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
+   {
+-    "name": "Adult sexual content",
+-    "keywords": "色情\n黄色\n黄文\n肉文\n车文\n开车\n成人内容\n成人视频\n成人网站\nR18\nNSFW\n露骨描写\n性描写\n性器官描写\n性行为描写\n性幻想\n约炮\n性交易\n色情服务\n卖淫嫖娼\n偷拍\n私密影像\n性暴力\n强迫性行为\n迷奸\n性剥削\n未成年人性化"
++    name: "L0 Adult sexual content",
++    keywords: [
++      "色情",
++      "黄色内容",
++      "黄文",
++      "肉文",
++      "车文",
++      "开车",
++      "成人内容",
++      "成人视频",
++      "成人网站",
++      "黄网站",
++      "R18",
++      "NSFW",
++      "露骨描写",
++      "性描写",
++      "性器官描写",
++      "性行为描写",
++      "性幻想",
++      "约炮",
++      "一夜情资源",
++      "性交易",
++      "卖淫",
++      "嫖娼",
++      "色情服务",
++      "偷拍",
++      "私密影像",
++      "迷奸",
++      "强奸",
++      "性暴力",
++      "性剥削",
++      "未成年性",
++      "未成年裸",
++      "未成年黄",
++      "未成年约",
++      "未成年调教",
++      "萝莉性",
++      "萝莉裸",
++      "萝莉黄",
++      "儿童性",
++      "儿童裸",
++      "儿童黄"
++    ].join("\n")
++  },
++  {
++    name: "L0 Regulated dangerous goods",
++    keywords: [
++      "毒品",
++      "制毒",
++      "吸毒",
++      "贩毒",
++      "冰毒",
++      "海洛因",
++      "大麻",
++      "摇头丸",
++      "K粉",
++      "氯胺酮",
++      "芬太尼",
++      "易制毒",
++      "前体",
++      "受管制化学品",
++      "受控药物",
++      "受管制药物",
++      "合成毒品",
++      "合成违禁药",
++      "合成爆炸物",
++      "提纯毒品",
++      "提纯违禁药",
++      "萃取毒品",
++      "萃取违禁药",
++      "爆炸物",
++      "炸药",
++      "雷管",
++      "燃烧瓶",
++      "土炸弹",
++      "化学武器",
++      "生物武器",
++      "病原体扩增",
++      "培养病毒",
++      "绕过检测",
++      "绕过监管",
++      "绕过尿检",
++      "绕过毒检",
++      "替代前体",
++      "替代管制物",
++      "替代违禁药"
++    ].join("\n")
+   },
+   {
+-    "name": "Sensitive political content",
+-    "keywords": "敏感政治历史事件\n政治运动\n政治风波\n群体性政治事件\n争议性政治议题\n反中国政府\n组织政治行动\n敏感政治资料\n绕过政治审查"
++    name: "L0 China political high risk",
++    keywords: [
++      "敏感政治",
++      "敏感历史",
++      "政治风波",
++      "政治运动",
++      "群体性事件",
++      "群体事件",
++      "反党",
++      "反政府",
++      "颠覆国家政权",
++      "推翻政府",
++      "煽动颠覆",
++      "政治行动",
++      "分裂国家",
++      "民族分裂",
++      "台独",
++      "港独",
++      "疆独",
++      "藏独",
++      "绕过政治审查",
++      "绕过内容审查",
++      "绕过敏感词审查",
++      "规避政治审查",
++      "规避内容审查",
++      "规避敏感词审查",
++      "敏感政治资料",
++      "敏感政治事件",
++      "政治敏感时间线"
++    ].join("\n")
+   },
+   {
+-    "name": "Regulated dangerous goods",
+-    "keywords": "毒品\n受管制药物\n受管制化学品\n危险化学品\n化学武器\n生物毒素\n危险病原体\n爆炸物\n爆炸物前体\n检测规避\n监管规避"
++    name: "L0 Terrorism and violence",
++    keywords: [
++      "恐怖主义",
++      "极端组织",
++      "圣战",
++      "自杀式袭击",
++      "炸学校",
++      "炸地铁",
++      "大规模杀伤",
++      "教我杀人",
++      "教我放火",
++      "教我爆破",
++      "教我投毒",
++      "怎么杀人",
++      "怎么投毒",
++      "怎么爆破"
++    ].join("\n")
+   }
+ ];
+ var DEFAULT_SAFETY_BLOCK_KEYWORDS = DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS.flatMap(
+@@ -615,14 +737,14 @@ var Config = import_koishi.Schema.intersect([
+     summaryModel: import_koishi.Schema.dynamic("model").default("empty"),
+     searchThreshold: import_koishi.Schema.percent().step(0.01).default(0.25),
+     contextualCompression: import_koishi.Schema.boolean().default(false),
+-    replySafetyCheckFails: import_koishi.Schema.string().role("textarea").default("").description("安全阻断时的固定回复内容，为空则不阻断"),
++    replySafetyCheckFails: import_koishi.Schema.string().role("textarea").default("").description("Fixed reply when safety blocking is triggered."),
+     safetyBlockKeywordGroups: import_koishi.Schema.array(
+       import_koishi.Schema.object({
+         name: import_koishi.Schema.string().default(""),
+         keywords: import_koishi.Schema.string().role("textarea", { rows: [3, 8] }).default("")
+       })
+     ).role("table").default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS).description(
+-      "Keyword groups that block browsing/search before query generation. Put one keyword per line in each group."
++      "Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group."
+     )
+   }),
+   import_koishi.Schema.object({
+@@ -696,7 +818,7 @@ Rules:
+ - Make the question self-contained and clear
+ - Optimize for search engine queries with time-sensitivity in mind
+ - Consider the current time: {time} when need formulating search queries
+-- Before deciding the action, block requests that clearly match the configured safety keywords: {safetyBlockKeywords}
++- Before deciding the action, block requests that clearly match the configured hard-block keywords: {safetyBlockKeywords}
+ - ALWAYS generate 2-3 different search keywords/phrases for multi-source verification
+ - Do not add any explanations or additional content
+ - Base your response on a comprehensive analysis of the chat history
+@@ -710,15 +832,15 @@ Rules:
+ 
+ Action types explanation:
+ 1. "skip" - Use when the question doesn't require an internet search (e.g., personal opinions, simple calculations, or information already provided in the chat history)
+-   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "action": "skip" }}
++   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "safety": "allow", "action": "skip", "content": [] }}
+ 
+ 2. "search" - Use when you need to generate search-engine-friendly questions
+    Example: For "What's the weather like in Tokyo and New York?"
+-   {{ "thought": "This requires checking current weather in two different cities as of {time}", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
++   {{ "thought": "This requires checking current weather in two different cities as of {time}", "safety": "allow", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
+ 
+ 3. "url" - Use when the message contains one or more URLs that should be browsed
+    Example: For "Can you summarize the information from https://example.com/article and https://example.org/data?"
+-   {{ "thought": "This requires browsing two specific URLs to gather information", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
++   {{ "thought": "This requires browsing two specific URLs to gather information", "safety": "allow", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
+ 
+ IMPORTANT:
+ - Your JSON response MUST be in the same language as the follow up input. This is crucial for maintaining context and accuracy.
+@@ -729,7 +851,7 @@ IMPORTANT:
+ Chat History:
+ {chat_history}
+ Current Time: {time}
+-Safety Block Keywords:
++Hard Block Keywords:
+ {safetyBlockKeywords}
+ Follow-up Input: {question}
+ JSON Response:`
+@@ -2207,7 +2329,7 @@ var readBrowserText = new Function(
+                 const text = a.textContent?.replace(/\s+/g, ' ').trim()
+                 const href = a.getAttribute('href')
+                 return text && href
+-                    ? '- [' + text + '](' + new URL(href, location.href).href + ')'
++                    ? \`- [\${text}](\${new URL(href, location.href).href})\`
+                     : ''
+             })
+             .filter(Boolean)
+@@ -3027,7 +3149,9 @@ function apply10(ctx, config) {
+             contextualCompressionPrompt: config.contextualCompression ? config.contextualCompressionPrompt : void 0,
+             searchFailedPrompt: config.searchFailedPrompt,
+             replySafetyCheckFails: config.replySafetyCheckFails,
+-            safetyBlockKeywords: config.safetyBlockKeywordGroups.flatMap((group) => group.keywords.split(/\r?\n/)).map((keyword) => keyword.trim()).filter((keyword) => keyword.length > 0),
++            safetyBlockKeywords: config.safetyBlockKeywordGroups.flatMap(
++              (group) => group.keywords.split(/\r?\n/)
++            ).map((keyword) => keyword.trim()).filter((keyword) => keyword.length > 0),
+             variableService: ctx.chatluna.promptRenderer,
+             contextManager: ctx.chatluna.contextManager,
+             browserManager
+@@ -3065,8 +3189,8 @@ async function createModel(ctx, model) {
+ }
+ __name(createModel, "createModel");
+ var inject = {
+-  required: ["chatluna", "puppeteer"],
+-  optional: ["chatluna_agent"]
++  required: ["chatluna"],
++  optional: ["puppeteer", "chatluna_agent"]
+ };
+ var name = "chatluna-search-service";
+ // Annotate the CommonJS export names for ESM import in node:
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 69bc9511de1f5c6ff475b40d9fe4bd8d0cabe058..a5ebddcd2ebd4163fa064f2f202adf8b3027233f 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -8,14 +8,14 @@ var __commonJS = (cb, mod) => function __require() {
+ // src/locales/zh-CN.schema.yml
+ var require_zh_CN_schema = __commonJS({
+   "src/locales/zh-CN.schema.yml"(exports, module) {
+-    module.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
++    module.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "在生成搜索前触发阻断的硬拦截关键词分组。每组内每行一个关键词。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
+   }
+ });
+ 
+ // src/locales/en-US.schema.yml
+ var require_en_US_schema = __commonJS({
+   "src/locales/en-US.schema.yml"(exports, module) {
+-    module.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "Keyword groups that block browsing/search before query generation. Put one keyword per line in each group.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
++    module.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", replySafetyCheckFails: "Fixed reply when safety blocking is triggered.", safetyBlockKeywordGroups: "Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
+   }
+ });
+ 
+@@ -112,24 +112,6 @@ function parseSearchAction(content) {
+   };
+ }
+ __name(parseSearchAction, "parseSearchAction");
+-function clipDebugValue(value, limit = 3e3) {
+-  const text = typeof value === "string" ? value : JSON.stringify(value);
+-  if (text == null) return "";
+-  return text.length > limit ? `${text.slice(0, limit)}...<truncated ${text.length - limit} chars>` : text;
+-}
+-__name(clipDebugValue, "clipDebugValue");
+-async function formatRouterPromptForDebug(chain, input) {
+-  try {
+-    const prompt = chain?.prompt;
+-    if (typeof prompt?.format === "function") {
+-      return await prompt.format(input);
+-    }
+-  } catch (error) {
+-    logger?.debug(`[search-service] failed to render router prompt for debug: ${error?.message ?? error}`);
+-  }
+-  return "";
+-}
+-__name(formatRouterPromptForDebug, "formatRouterPromptForDebug");
+ 
+ // src/chain/browsing_chain.ts
+ import {
+@@ -274,6 +256,12 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+       embeddings: this.embeddings
+     });
+   }
++  _findBlockHit(input) {
++    return this.safetyBlockKeywords.find((keyword) => {
++      const word = keyword.trim();
++      return word.length > 0 && input.toLocaleLowerCase().includes(word.toLocaleLowerCase());
++    });
++  }
+   async call({
+     message,
+     stream,
+@@ -297,48 +285,54 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+       prompt: getMessageContent(message.content)
+     });
+     requests["variables_hide"] = requests["variables"];
+-    const rawQuestion = getMessageContent(message.content);
+-    const normalizedQuestion = rawQuestion.trim();
+-    const routerInput = {
+-      chat_history: formatChatHistoryAsString(
+-        chatHistory.slice(-6)
+-      ),
+-      time: (/* @__PURE__ */ new Date()).toISOString(),
+-      question: rawQuestion,
+-      safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
+-      temperature: 0,
+-      signal
+-    };
+-    const hit = this.safetyBlockKeywords.find((keyword) => {
+-      const word = keyword.trim();
+-      return word.length > 0 && rawQuestion.toLocaleLowerCase().includes(word.toLocaleLowerCase());
+-    });
++    const input = getMessageContent(message.content);
++    const hit = this._findBlockHit(input);
+     if (hit) {
+-      logger?.debug(`[search-service] blocked response: keyword ${hit}`);
++      logger?.debug(`blocked response: keyword ${hit}`);
+       return {
+-        message: new AIMessage(this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy.")
++        message: new AIMessage(
++          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
++        )
+       };
+     }
+-    logger?.debug(`[search-service] raw question: ${clipDebugValue(rawQuestion)}`);
+-    logger?.debug(`[search-service] normalized question: ${clipDebugValue(normalizedQuestion)}`);
+-    logger?.debug(`[search-service] rendered router prompt: ${clipDebugValue(await formatRouterPromptForDebug(this.formatQuestionChain, routerInput))}`);
+     const newQuestion = (await callChatLunaChain(
+       this.formatQuestionChain,
+-      routerInput,
++      {
++        chat_history: formatChatHistoryAsString(
++          chatHistory.slice(-6)
++        ),
++        time: (/* @__PURE__ */ new Date()).toISOString(),
++        question: input,
++        safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
++        temperature: 0,
++        signal
++      },
+       {
+         "llm-used-token-count": events["llm-used-token-count"]
+       }
+     ))["text"];
+     const searchAction = parseSearchAction(newQuestion);
+-    logger?.debug(`[search-service] router raw output: ${clipDebugValue(newQuestion)}`);
+-    logger?.debug(`[search-service] parsed action: ${clipDebugValue(searchAction)}`);
++    logger?.debug(`action: ${JSON.stringify(searchAction)}`);
+     if (searchAction.safety === "block") {
+-      logger?.debug(
+-        "blocked response: router safety block"
+-      );
+-      return {
+-        message: new AIMessage(this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy.")
+-      };
++      if (this.replySafetyCheckFails != null && this.replySafetyCheckFails.length > 0) {
++        logger?.debug(
++          "blocked response: replySafetyCheckFails provided"
++        );
++        return {
++          message: new AIMessage(this.replySafetyCheckFails)
++        };
++      }
++    }
++    if (Array.isArray(searchAction?.content)) {
++      const queryHit = searchAction.content.map((item) => this._findBlockHit(item)).find((keyword) => keyword != null);
++      if (queryHit) {
++        logger?.debug(`blocked response: search keyword ${queryHit}`);
++        return {
++          message: new AIMessage(
++            this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
++          )
++        };
++      }
+     }
+     if (searchAction != null && searchAction.action !== "skip") {
+       await this._search(
+@@ -545,16 +539,144 @@ async function apply(ctx, _config) {
+ __name(apply, "apply");
+ var DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS = [
+   {
+-    "name": "Adult sexual content",
+-    "keywords": "色情\n黄色\n黄文\n肉文\n车文\n开车\n成人内容\n成人视频\n成人网站\nR18\nNSFW\n露骨描写\n性描写\n性器官描写\n性行为描写\n性幻想\n约炮\n性交易\n色情服务\n卖淫嫖娼\n偷拍\n私密影像\n性暴力\n强迫性行为\n迷奸\n性剥削\n未成年人性化"
++    name: "L0 Adult sexual content",
++    keywords: [
++      "色情",
++      "黄色内容",
++      "黄文",
++      "肉文",
++      "车文",
++      "开车",
++      "成人内容",
++      "成人视频",
++      "成人网站",
++      "黄网站",
++      "R18",
++      "NSFW",
++      "露骨描写",
++      "性描写",
++      "性器官描写",
++      "性行为描写",
++      "性幻想",
++      "约炮",
++      "一夜情资源",
++      "性交易",
++      "卖淫",
++      "嫖娼",
++      "色情服务",
++      "偷拍",
++      "私密影像",
++      "迷奸",
++      "强奸",
++      "性暴力",
++      "性剥削",
++      "未成年性",
++      "未成年裸",
++      "未成年黄",
++      "未成年约",
++      "未成年调教",
++      "萝莉性",
++      "萝莉裸",
++      "萝莉黄",
++      "儿童性",
++      "儿童裸",
++      "儿童黄"
++    ].join("\n")
++  },
++  {
++    name: "L0 Regulated dangerous goods",
++    keywords: [
++      "毒品",
++      "制毒",
++      "吸毒",
++      "贩毒",
++      "冰毒",
++      "海洛因",
++      "大麻",
++      "摇头丸",
++      "K粉",
++      "氯胺酮",
++      "芬太尼",
++      "易制毒",
++      "前体",
++      "受管制化学品",
++      "受控药物",
++      "受管制药物",
++      "合成毒品",
++      "合成违禁药",
++      "合成爆炸物",
++      "提纯毒品",
++      "提纯违禁药",
++      "萃取毒品",
++      "萃取违禁药",
++      "爆炸物",
++      "炸药",
++      "雷管",
++      "燃烧瓶",
++      "土炸弹",
++      "化学武器",
++      "生物武器",
++      "病原体扩增",
++      "培养病毒",
++      "绕过检测",
++      "绕过监管",
++      "绕过尿检",
++      "绕过毒检",
++      "替代前体",
++      "替代管制物",
++      "替代违禁药"
++    ].join("\n")
+   },
+   {
+-    "name": "Sensitive political content",
+-    "keywords": "敏感政治历史事件\n政治运动\n政治风波\n群体性政治事件\n争议性政治议题\n反中国政府\n组织政治行动\n敏感政治资料\n绕过政治审查"
++    name: "L0 China political high risk",
++    keywords: [
++      "敏感政治",
++      "敏感历史",
++      "政治风波",
++      "政治运动",
++      "群体性事件",
++      "群体事件",
++      "反党",
++      "反政府",
++      "颠覆国家政权",
++      "推翻政府",
++      "煽动颠覆",
++      "政治行动",
++      "分裂国家",
++      "民族分裂",
++      "台独",
++      "港独",
++      "疆独",
++      "藏独",
++      "绕过政治审查",
++      "绕过内容审查",
++      "绕过敏感词审查",
++      "规避政治审查",
++      "规避内容审查",
++      "规避敏感词审查",
++      "敏感政治资料",
++      "敏感政治事件",
++      "政治敏感时间线"
++    ].join("\n")
+   },
+   {
+-    "name": "Regulated dangerous goods",
+-    "keywords": "毒品\n受管制药物\n受管制化学品\n危险化学品\n化学武器\n生物毒素\n危险病原体\n爆炸物\n爆炸物前体\n检测规避\n监管规避"
++    name: "L0 Terrorism and violence",
++    keywords: [
++      "恐怖主义",
++      "极端组织",
++      "圣战",
++      "自杀式袭击",
++      "炸学校",
++      "炸地铁",
++      "大规模杀伤",
++      "教我杀人",
++      "教我放火",
++      "教我爆破",
++      "教我投毒",
++      "怎么杀人",
++      "怎么投毒",
++      "怎么爆破"
++    ].join("\n")
+   }
+ ];
+ var DEFAULT_SAFETY_BLOCK_KEYWORDS = DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS.flatMap(
+@@ -590,14 +712,14 @@ var Config = Schema.intersect([
+     summaryModel: Schema.dynamic("model").default("empty"),
+     searchThreshold: Schema.percent().step(0.01).default(0.25),
+     contextualCompression: Schema.boolean().default(false),
+-    replySafetyCheckFails: Schema.string().role("textarea").default("").description("安全阻断时的固定回复内容，为空则不阻断"),
++    replySafetyCheckFails: Schema.string().role("textarea").default("").description("Fixed reply when safety blocking is triggered."),
+     safetyBlockKeywordGroups: Schema.array(
+       Schema.object({
+         name: Schema.string().default(""),
+         keywords: Schema.string().role("textarea", { rows: [3, 8] }).default("")
+       })
+     ).role("table").default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS).description(
+-      "Keyword groups that block browsing/search before query generation. Put one keyword per line in each group."
++      "Hard-block keyword groups that block browsing/search before query generation. Put one keyword per line in each group."
+     )
+   }),
+   Schema.object({
+@@ -671,7 +793,7 @@ Rules:
+ - Make the question self-contained and clear
+ - Optimize for search engine queries with time-sensitivity in mind
+ - Consider the current time: {time} when need formulating search queries
+-- Before deciding the action, block requests that clearly match the configured safety keywords: {safetyBlockKeywords}
++- Before deciding the action, block requests that clearly match the configured hard-block keywords: {safetyBlockKeywords}
+ - ALWAYS generate 2-3 different search keywords/phrases for multi-source verification
+ - Do not add any explanations or additional content
+ - Base your response on a comprehensive analysis of the chat history
+@@ -685,15 +807,15 @@ Rules:
+ 
+ Action types explanation:
+ 1. "skip" - Use when the question doesn't require an internet search (e.g., personal opinions, simple calculations, or information already provided in the chat history)
+-   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "action": "skip" }}
++   Example: {{ "thought": "This is asking for a personal opinion which doesn't require search", "safety": "allow", "action": "skip", "content": [] }}
+ 
+ 2. "search" - Use when you need to generate search-engine-friendly questions
+    Example: For "What's the weather like in Tokyo and New York?"
+-   {{ "thought": "This requires checking current weather in two different cities as of {time}", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
++   {{ "thought": "This requires checking current weather in two different cities as of {time}", "safety": "allow", "action": "search", "content": ["Current latest weather in Tokyo {time}", "Current latest weather in New York {time}", "Tokyo weather forecast today", "New York weather forecast today"] }}
+ 
+ 3. "url" - Use when the message contains one or more URLs that should be browsed
+    Example: For "Can you summarize the information from https://example.com/article and https://example.org/data?"
+-   {{ "thought": "This requires browsing two specific URLs to gather information", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
++   {{ "thought": "This requires browsing two specific URLs to gather information", "safety": "allow", "action": "url", "content": ["https://example.com/article", "https://example.org/data"] }}
+ 
+ IMPORTANT:
+ - Your JSON response MUST be in the same language as the follow up input. This is crucial for maintaining context and accuracy.
+@@ -704,7 +826,7 @@ IMPORTANT:
+ Chat History:
+ {chat_history}
+ Current Time: {time}
+-Safety Block Keywords:
++Hard Block Keywords:
+ {safetyBlockKeywords}
+ Follow-up Input: {question}
+ JSON Response:`
+@@ -2182,7 +2304,7 @@ var readBrowserText = new Function(
+                 const text = a.textContent?.replace(/\s+/g, ' ').trim()
+                 const href = a.getAttribute('href')
+                 return text && href
+-                    ? '- [' + text + '](' + new URL(href, location.href).href + ')'
++                    ? \`- [\${text}](\${new URL(href, location.href).href})\`
+                     : ''
+             })
+             .filter(Boolean)
+@@ -3002,7 +3124,9 @@ function apply10(ctx, config) {
+             contextualCompressionPrompt: config.contextualCompression ? config.contextualCompressionPrompt : void 0,
+             searchFailedPrompt: config.searchFailedPrompt,
+             replySafetyCheckFails: config.replySafetyCheckFails,
+-            safetyBlockKeywords: config.safetyBlockKeywordGroups.flatMap((group) => group.keywords.split(/\r?\n/)).map((keyword) => keyword.trim()).filter((keyword) => keyword.length > 0),
++            safetyBlockKeywords: config.safetyBlockKeywordGroups.flatMap(
++              (group) => group.keywords.split(/\r?\n/)
++            ).map((keyword) => keyword.trim()).filter((keyword) => keyword.length > 0),
+             variableService: ctx.chatluna.promptRenderer,
+             contextManager: ctx.chatluna.contextManager,
+             browserManager
+@@ -3040,8 +3164,8 @@ async function createModel(ctx, model) {
+ }
+ __name(createModel, "createModel");
+ var inject = {
+-  required: ["chatluna", "puppeteer"],
+-  optional: ["chatluna_agent"]
++  required: ["chatluna"],
++  optional: ["puppeteer", "chatluna_agent"]
+ };
+ var name = "chatluna-search-service";
+ export {

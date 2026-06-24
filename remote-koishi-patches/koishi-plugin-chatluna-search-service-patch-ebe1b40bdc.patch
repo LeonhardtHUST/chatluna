@@ -1,0 +1,178 @@
+diff --git a/lib/index.cjs b/lib/index.cjs
+index d1b438c79cee358aec7e828857d438761b193fac..89db1ffd7626b33e459acb73e49b255e003cf7c3 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -491,6 +491,9 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         time: date,
+         question: question.payload,
+         risk_level: precheck.risk_level,
++        search_triggered: JSON.stringify(
++          searchTriggered(clean, this.searchTriggerKeywords)
++        ),
+         precheck: JSON.stringify({
+           safety: precheck.safety,
+           risk_level: precheck.risk_level,
+@@ -519,11 +522,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         )
+       };
+     }
+-    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedSearchAction(
+-      clean,
+-      date,
+-      this.searchTriggerKeywords
+-    ) ?? searchAction : searchAction;
++    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedUrlAction(clean) ?? searchAction : searchAction;
+     if (action !== searchAction) {
+       logger?.debug(`fixed action: ${JSON.stringify(action)}`);
+     }
+@@ -749,7 +748,7 @@ function extractQuestion(input, botNames, promptAttackWarning) {
+   };
+ }
+ __name(extractQuestion, "extractQuestion");
+-function fixedSearchAction(input, date, searchTriggerKeywords) {
++function fixedUrlAction(input) {
+   const urls = input.match(/https?:\/\/\S+/gi)?.map((url) => url.replace(/[),，。；;]+$/, "")).slice(0, 3);
+   if (urls != null && urls.length > 0) {
+     return {
+@@ -759,23 +758,15 @@ function fixedSearchAction(input, date, searchTriggerKeywords) {
+       content: urls
+     };
+   }
+-  if (searchTriggerKeywords.some(
+-    (keyword) => input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
+-  )) {
+-    return {
+-      thought: "current input matches search trigger",
+-      safety: "allow",
+-      action: "search",
+-      content: [
+-        `${input} ${date}`,
+-        `${input} 官网 公告 新闻 ${date}`,
+-        `${input} 来源 原文 ${date}`
+-      ]
+-    };
+-  }
+   return null;
+ }
+-__name(fixedSearchAction, "fixedSearchAction");
++__name(fixedUrlAction, "fixedUrlAction");
++function searchTriggered(input, searchTriggerKeywords) {
++  return searchTriggerKeywords.some(
++    (keyword) => input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
++  );
++}
++__name(searchTriggered, "searchTriggered");
+ function raceAbort(promise, signal) {
+   if (signal?.aborted) {
+     return Promise.reject(new import_error.ChatLunaError(import_error.ChatLunaErrorCode.ABORTED));
+@@ -1175,8 +1166,9 @@ Decision order:
+ 2. Follow precheck_json. If precheck_json.safety="recheck", first perform a conservative safety review. Only continue when the user intent is clearly educational, scientific, defensive, compliant, or ordinary benign information seeking. If uncertain, return safety="block", risk_level="high", action="skip", content=[].
+ 3. If question_payload_json clearly asks to search, browse, generate, rewrite, summarize, translate, test, bypass, or optimize blocked content, return safety="block", risk_level="high", action="skip", content=[].
+ 4. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
+-5. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
+-6. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
++5. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
++6. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
++7. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
+ 
+ Search query rules:
+ - Preserve key entities, location, version, and user intent.
+@@ -1186,6 +1178,9 @@ Search query rules:
+ Precheck:
+ {precheck}
+ 
++search_triggered_json:
++{search_triggered}
++
+ Configured hard-block categories:
+ {safetyBlockKeywords}
+ 
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 36fc53a317e361a4792fabb5a64a8095575c01bb..2f35f81e76db4eb4a495e50747cc82d99acc4f6b 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -466,6 +466,9 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         time: date,
+         question: question.payload,
+         risk_level: precheck.risk_level,
++        search_triggered: JSON.stringify(
++          searchTriggered(clean, this.searchTriggerKeywords)
++        ),
+         precheck: JSON.stringify({
+           safety: precheck.safety,
+           risk_level: precheck.risk_level,
+@@ -494,11 +497,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         )
+       };
+     }
+-    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedSearchAction(
+-      clean,
+-      date,
+-      this.searchTriggerKeywords
+-    ) ?? searchAction : searchAction;
++    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedUrlAction(clean) ?? searchAction : searchAction;
+     if (action !== searchAction) {
+       logger?.debug(`fixed action: ${JSON.stringify(action)}`);
+     }
+@@ -724,7 +723,7 @@ function extractQuestion(input, botNames, promptAttackWarning) {
+   };
+ }
+ __name(extractQuestion, "extractQuestion");
+-function fixedSearchAction(input, date, searchTriggerKeywords) {
++function fixedUrlAction(input) {
+   const urls = input.match(/https?:\/\/\S+/gi)?.map((url) => url.replace(/[),，。；;]+$/, "")).slice(0, 3);
+   if (urls != null && urls.length > 0) {
+     return {
+@@ -734,23 +733,15 @@ function fixedSearchAction(input, date, searchTriggerKeywords) {
+       content: urls
+     };
+   }
+-  if (searchTriggerKeywords.some(
+-    (keyword) => input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
+-  )) {
+-    return {
+-      thought: "current input matches search trigger",
+-      safety: "allow",
+-      action: "search",
+-      content: [
+-        `${input} ${date}`,
+-        `${input} 官网 公告 新闻 ${date}`,
+-        `${input} 来源 原文 ${date}`
+-      ]
+-    };
+-  }
+   return null;
+ }
+-__name(fixedSearchAction, "fixedSearchAction");
++__name(fixedUrlAction, "fixedUrlAction");
++function searchTriggered(input, searchTriggerKeywords) {
++  return searchTriggerKeywords.some(
++    (keyword) => input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
++  );
++}
++__name(searchTriggered, "searchTriggered");
+ function raceAbort(promise, signal) {
+   if (signal?.aborted) {
+     return Promise.reject(new ChatLunaError(ChatLunaErrorCode.ABORTED));
+@@ -1150,8 +1141,9 @@ Decision order:
+ 2. Follow precheck_json. If precheck_json.safety="recheck", first perform a conservative safety review. Only continue when the user intent is clearly educational, scientific, defensive, compliant, or ordinary benign information seeking. If uncertain, return safety="block", risk_level="high", action="skip", content=[].
+ 3. If question_payload_json clearly asks to search, browse, generate, rewrite, summarize, translate, test, bypass, or optimize blocked content, return safety="block", risk_level="high", action="skip", content=[].
+ 4. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
+-5. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
+-6. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
++5. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
++6. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
++7. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
+ 
+ Search query rules:
+ - Preserve key entities, location, version, and user intent.
+@@ -1161,6 +1153,9 @@ Search query rules:
+ Precheck:
+ {precheck}
+ 
++search_triggered_json:
++{search_triggered}
++
+ Configured hard-block categories:
+ {safetyBlockKeywords}
+ 

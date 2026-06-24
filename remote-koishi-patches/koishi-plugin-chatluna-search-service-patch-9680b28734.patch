@@ -1,0 +1,108 @@
+diff --git a/lib/index.cjs b/lib/index.cjs
+index 89db1ffd7626b33e459acb73e49b255e003cf7c3..c64e5b13f8e0555bc8cb3406ef45ca2b2a667258 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -477,9 +477,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         `blocked response: ${precheck.categories.join(",")}`
+       );
+       return {
+-        message: new import_messages.AIMessage(
+-          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-        )
++        message: safetyBlockMessage(this.replySafetyCheckFails)
+       };
+     }
+     const newQuestion = (await (0, import_base.callChatLunaChain)(
+@@ -517,9 +515,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         `blocked response: router ${searchAction.safety ?? "missing safety"}`
+       );
+       return {
+-        message: new import_messages.AIMessage(
+-          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-        )
++        message: safetyBlockMessage(this.replySafetyCheckFails)
+       };
+     }
+     const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedUrlAction(clean) ?? searchAction : searchAction;
+@@ -535,9 +531,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+           `blocked response: search keyword ${queryHit.keyword}`
+         );
+         return {
+-          message: new import_messages.AIMessage(
+-            this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-          )
++          message: safetyBlockMessage(this.replySafetyCheckFails)
+         };
+       }
+     }
+@@ -726,6 +720,16 @@ Content: ${action.content.join("\n")}`
+ var formatChatHistoryAsString = /* @__PURE__ */ __name((history) => {
+   return history.map((message) => `${message.getType()}: ${message.content}`).join("\n");
+ }, "formatChatHistoryAsString");
++function safetyBlockMessage(content) {
++  return new import_messages.AIMessage({
++    content: content?.length > 0 ? content : "Request blocked by safety policy.",
++    additional_kwargs: {
++      chatluna_skip_history: true,
++      chatluna_remove_user_history: true
++    }
++  });
++}
++__name(safetyBlockMessage, "safetyBlockMessage");
+ function formatSearchResults(results) {
+   return results.map(
+     (result) => Object.entries(result).map(([key, value]) => `${key}: ${value}`).join(", ")
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 2f35f81e76db4eb4a495e50747cc82d99acc4f6b..66258a961dc9ad218c0d8df1ec1240015c296460 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -452,9 +452,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         `blocked response: ${precheck.categories.join(",")}`
+       );
+       return {
+-        message: new AIMessage(
+-          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-        )
++        message: safetyBlockMessage(this.replySafetyCheckFails)
+       };
+     }
+     const newQuestion = (await callChatLunaChain(
+@@ -492,9 +490,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         `blocked response: router ${searchAction.safety ?? "missing safety"}`
+       );
+       return {
+-        message: new AIMessage(
+-          this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-        )
++        message: safetyBlockMessage(this.replySafetyCheckFails)
+       };
+     }
+     const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedUrlAction(clean) ?? searchAction : searchAction;
+@@ -510,9 +506,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+           `blocked response: search keyword ${queryHit.keyword}`
+         );
+         return {
+-          message: new AIMessage(
+-            this.replySafetyCheckFails?.length > 0 ? this.replySafetyCheckFails : "Request blocked by safety policy."
+-          )
++          message: safetyBlockMessage(this.replySafetyCheckFails)
+         };
+       }
+     }
+@@ -701,6 +695,16 @@ Content: ${action.content.join("\n")}`
+ var formatChatHistoryAsString = /* @__PURE__ */ __name((history) => {
+   return history.map((message) => `${message.getType()}: ${message.content}`).join("\n");
+ }, "formatChatHistoryAsString");
++function safetyBlockMessage(content) {
++  return new AIMessage({
++    content: content?.length > 0 ? content : "Request blocked by safety policy.",
++    additional_kwargs: {
++      chatluna_skip_history: true,
++      chatluna_remove_user_history: true
++    }
++  });
++}
++__name(safetyBlockMessage, "safetyBlockMessage");
+ function formatSearchResults(results) {
+   return results.map(
+     (result) => Object.entries(result).map(([key, value]) => `${key}: ${value}`).join(", ")

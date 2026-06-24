@@ -1,0 +1,232 @@
+diff --git a/lib/llm-core/chat/app.cjs b/lib/llm-core/chat/app.cjs
+index 8c13aed14f0c7df5ef77907f39427cc5adcc82f1..201e587f3636b3b999677768c2ad76bde3973c8e 100644
+--- a/lib/llm-core/chat/app.cjs
++++ b/lib/llm-core/chat/app.cjs
+@@ -162,6 +162,9 @@ Focus on information that would be helpful for continuing the conversation, incl
+ - Important technical decisions and why they were made
+ - Tool calls that were made and their results (summarize the key outcomes)
+ 
++Additional user instructions for this compression:
++{instruction}
++
+ Some old tool result messages may say that the original tool output expired and was removed.
+ Treat those as intentional retention placeholders, not as meaningful tool output.
+ 
+@@ -171,7 +174,7 @@ Do not respond to any questions in the conversation, only output the summary.
+ 
+ Conversation:
+ {conversation_chunk}`);
+-async function compressChunk(model, transcript, conversationId, signal) {
++async function compressChunk(model, transcript, conversationId, signal, instruction) {
+   const trimmed = transcript?.trim();
+   if (!trimmed) {
+     return null;
+@@ -179,6 +182,7 @@ async function compressChunk(model, transcript, conversationId, signal) {
+   const chain = new import_base.ChatLunaLLMChain({ llm: model, prompt: COMPRESS_PROMPT });
+   const result = await chain.invoke({
+     conversation_chunk: trimmed,
++    instruction: instruction?.trim() || "None",
+     id: conversationId,
+     stream: false,
+     signal
+@@ -241,7 +245,8 @@ async function compressIfNeeded(opts) {
+     model,
+     transcript,
+     conversationId,
+-    opts.signal
++    opts.signal,
++    opts.instruction
+   );
+   if (!summary?.text.trim()) return noCompressResult();
+   const summaryMessage = new import_messages2.HumanMessage({
+@@ -254,11 +259,11 @@ async function compressIfNeeded(opts) {
+   const reducedTokens = inputTokens - outputTokens;
+   const reducedPercent = inputTokens > 0 ? reducedTokens / inputTokens * 100 : 0;
+   import_koishi_plugin_chatluna2.logger.info(
+-    "[InfiniteContext] Compressed: %d → %d tokens (-%d, %.2f%%), kept %d recent messages",
++    "[InfiniteContext] Compressed: %d → %d tokens (-%d, %s%%), kept %d recent messages",
+     inputTokens,
+     outputTokens,
+     reducedTokens,
+-    reducedPercent,
++    reducedPercent.toFixed(2),
+     toKeep.length
+   );
+   return {
+@@ -486,13 +491,27 @@ var ChatInterface = class {
+       );
+     }
+     const messageContent = (0, import_string3.getMessageContent)(displayResponse.content);
++    const skipHistory = responseMessage.additional_kwargs?.chatluna_skip_history === true;
++    const removeUserHistory = responseMessage.additional_kwargs?.chatluna_remove_user_history === true;
+     if (messageContent.trim().length > 0) {
+-      await saveUser();
+-      let saveMessage = responseMessage;
+-      if (!this.chatluna.currentConfig.rawOnCensor) {
+-        saveMessage = displayResponse;
++      if (skipHistory) {
++        if (removeUserHistory && hasSavedUser) {
++          const messages = await this._chatHistory.getMessages();
++          const last = messages[messages.length - 1];
++          if (last?.getType() === "human" && (0, import_string3.getMessageContent)(last.content) === (0, import_string3.getMessageContent)(arg.message.content)) {
++            await this._chatHistory.replaceMessages(
++              messages.slice(0, -1)
++            );
++          }
++        }
++      } else {
++        await saveUser();
++        let saveMessage = responseMessage;
++        if (!this.chatluna.currentConfig.rawOnCensor) {
++          saveMessage = displayResponse;
++        }
++        await this._chatHistory.addMessage(saveMessage);
+       }
+-      await this._chatHistory.addMessage(saveMessage);
+     }
+     try {
+       await this.ctx.parallel(
+@@ -507,7 +526,7 @@ var ChatInterface = class {
+     } catch (error) {
+       await this.handleChatError(arg, wrapper, error, false);
+     }
+-    if (this._input.autoTitle !== false) {
++    if (this._input.autoTitle !== false && !skipHistory) {
+       autoSummarizeTitle(
+         this.chatluna,
+         arg.conversationId,
+@@ -624,7 +643,7 @@ var ChatInterface = class {
+     await this._chatHistory.clear();
+     await this._chain?.value?.model.clearContext(this._input.conversationId);
+   }
+-  async compressContext(force = false) {
++  async compressContext(force = false, instruction) {
+     const wrapper = await this.getChatLunaLLMChainWrapper();
+     if (!this._chatHistory) {
+       throw new import_error2.ChatLunaError(
+@@ -638,7 +657,8 @@ var ChatInterface = class {
+       conversationId: this._input.conversationId,
+       preset: this._input.preset,
+       threshold: this.chatluna.currentConfig.infiniteContextThreshold,
+-      force
++      force,
++      instruction
+     });
+     if (result.messages) {
+       await this._chatHistory.replaceMessages(result.messages);
+diff --git a/lib/llm-core/chat/app.mjs b/lib/llm-core/chat/app.mjs
+index d95eb7a5e6ce5475cdac03e719598d2db844da9c..e518cf38c469f4d853ee92f5204be812ad43b336 100644
+--- a/lib/llm-core/chat/app.mjs
++++ b/lib/llm-core/chat/app.mjs
+@@ -161,6 +161,9 @@ Focus on information that would be helpful for continuing the conversation, incl
+ - Important technical decisions and why they were made
+ - Tool calls that were made and their results (summarize the key outcomes)
+ 
++Additional user instructions for this compression:
++{instruction}
++
+ Some old tool result messages may say that the original tool output expired and was removed.
+ Treat those as intentional retention placeholders, not as meaningful tool output.
+ 
+@@ -170,7 +173,7 @@ Do not respond to any questions in the conversation, only output the summary.
+ 
+ Conversation:
+ {conversation_chunk}`);
+-async function compressChunk(model, transcript, conversationId, signal) {
++async function compressChunk(model, transcript, conversationId, signal, instruction) {
+   const trimmed = transcript?.trim();
+   if (!trimmed) {
+     return null;
+@@ -178,6 +181,7 @@ async function compressChunk(model, transcript, conversationId, signal) {
+   const chain = new ChatLunaLLMChain({ llm: model, prompt: COMPRESS_PROMPT });
+   const result = await chain.invoke({
+     conversation_chunk: trimmed,
++    instruction: instruction?.trim() || "None",
+     id: conversationId,
+     stream: false,
+     signal
+@@ -240,7 +244,8 @@ async function compressIfNeeded(opts) {
+     model,
+     transcript,
+     conversationId,
+-    opts.signal
++    opts.signal,
++    opts.instruction
+   );
+   if (!summary?.text.trim()) return noCompressResult();
+   const summaryMessage = new HumanMessage({
+@@ -253,11 +258,11 @@ async function compressIfNeeded(opts) {
+   const reducedTokens = inputTokens - outputTokens;
+   const reducedPercent = inputTokens > 0 ? reducedTokens / inputTokens * 100 : 0;
+   logger2.info(
+-    "[InfiniteContext] Compressed: %d → %d tokens (-%d, %.2f%%), kept %d recent messages",
++    "[InfiniteContext] Compressed: %d → %d tokens (-%d, %s%%), kept %d recent messages",
+     inputTokens,
+     outputTokens,
+     reducedTokens,
+-    reducedPercent,
++    reducedPercent.toFixed(2),
+     toKeep.length
+   );
+   return {
+@@ -485,13 +490,27 @@ var ChatInterface = class {
+       );
+     }
+     const messageContent = getMessageContent3(displayResponse.content);
++    const skipHistory = responseMessage.additional_kwargs?.chatluna_skip_history === true;
++    const removeUserHistory = responseMessage.additional_kwargs?.chatluna_remove_user_history === true;
+     if (messageContent.trim().length > 0) {
+-      await saveUser();
+-      let saveMessage = responseMessage;
+-      if (!this.chatluna.currentConfig.rawOnCensor) {
+-        saveMessage = displayResponse;
++      if (skipHistory) {
++        if (removeUserHistory && hasSavedUser) {
++          const messages = await this._chatHistory.getMessages();
++          const last = messages[messages.length - 1];
++          if (last?.getType() === "human" && getMessageContent3(last.content) === getMessageContent3(arg.message.content)) {
++            await this._chatHistory.replaceMessages(
++              messages.slice(0, -1)
++            );
++          }
++        }
++      } else {
++        await saveUser();
++        let saveMessage = responseMessage;
++        if (!this.chatluna.currentConfig.rawOnCensor) {
++          saveMessage = displayResponse;
++        }
++        await this._chatHistory.addMessage(saveMessage);
+       }
+-      await this._chatHistory.addMessage(saveMessage);
+     }
+     try {
+       await this.ctx.parallel(
+@@ -506,7 +525,7 @@ var ChatInterface = class {
+     } catch (error) {
+       await this.handleChatError(arg, wrapper, error, false);
+     }
+-    if (this._input.autoTitle !== false) {
++    if (this._input.autoTitle !== false && !skipHistory) {
+       autoSummarizeTitle(
+         this.chatluna,
+         arg.conversationId,
+@@ -623,7 +642,7 @@ var ChatInterface = class {
+     await this._chatHistory.clear();
+     await this._chain?.value?.model.clearContext(this._input.conversationId);
+   }
+-  async compressContext(force = false) {
++  async compressContext(force = false, instruction) {
+     const wrapper = await this.getChatLunaLLMChainWrapper();
+     if (!this._chatHistory) {
+       throw new ChatLunaError2(
+@@ -637,7 +656,8 @@ var ChatInterface = class {
+       conversationId: this._input.conversationId,
+       preset: this._input.preset,
+       threshold: this.chatluna.currentConfig.infiniteContextThreshold,
+-      force
++      force,
++      instruction
+     });
+     if (result.messages) {
+       await this._chatHistory.replaceMessages(result.messages);

@@ -1,0 +1,24 @@
+diff --git a/lib/index.cjs b/lib/index.cjs
+index ca3d8c4896622ccc4340dce85f6bccdf485a260f..6bc05bb30bfd793683e3e0366770f4a059451adc 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -515,6 +515,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         ),
+         time: date,
+         question: question.payload,
++        risk_level: precheck.risk_level,
+         precheck: JSON.stringify({
+           safety: precheck.safety,
+           risk_level: precheck.risk_level,
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 66d366dbef40434c4bf7c631ac8dba570c715ea4..d722989e558573bb4abc53173cafd779ef9035c6 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -490,6 +490,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         ),
+         time: date,
+         question: question.payload,
++        risk_level: precheck.risk_level,
+         precheck: JSON.stringify({
+           safety: precheck.safety,
+           risk_level: precheck.risk_level,

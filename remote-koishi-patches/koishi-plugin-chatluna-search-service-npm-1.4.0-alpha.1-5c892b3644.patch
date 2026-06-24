@@ -1,0 +1,1405 @@
+diff --git a/lib/chain/browsing_chain.d.ts b/lib/chain/browsing_chain.d.ts
+index 5adfac7b05d49508a2e584c426ae89457c9ba5cb..60624c93770166abdde94d0cbf0b5b70f067950c 100644
+--- a/lib/chain/browsing_chain.d.ts
++++ b/lib/chain/browsing_chain.d.ts
+@@ -22,8 +22,9 @@ export interface ChatLunaBrowsingChainInput {
+     newQuestionPrompt: string;
+     contextualCompressionPrompt?: string;
+     searchFailedPrompt: string;
++    replySafetyCheckFails?: string;
+     variableService: ChatLunaPromptRenderService;
+-    browserManager: BrowserManager;
++    browserManager?: BrowserManager;
+ }
+ export declare class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper implements ChatLunaBrowsingChainInput {
+     botName: string;
+@@ -43,16 +44,17 @@ export declare class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper imple
+     thoughtMessage: boolean;
+     searchPrompt: string;
+     searchFailedPrompt: string;
+-    browserManager: BrowserManager;
++    browserManager?: BrowserManager;
++    replySafetyCheckFails?: string;
+     private _toolMask?;
+-    constructor({ botName, embeddings, historyMemory, chain, searchFailedPrompt, tools, formatQuestionChain, summaryType, thoughtMessage, searchPrompt, preset, newQuestionPrompt, variableService, browserManager, summaryModel, contextualCompressionPrompt, contextualCompressionChain }: ChatLunaBrowsingChainInput & {
++    constructor({ botName, embeddings, historyMemory, chain, searchFailedPrompt, tools, formatQuestionChain, summaryType, thoughtMessage, searchPrompt, preset, newQuestionPrompt, variableService, browserManager, summaryModel, contextualCompressionPrompt, contextualCompressionChain, replySafetyCheckFails }: ChatLunaBrowsingChainInput & {
+         chain: ChatLunaLLMChain;
+         formatQuestionChain: ChatLunaLLMChain;
+         tools: ComputedRef<ChatLunaToolWrapper[]>;
+         searchPrompt: string;
+         contextualCompressionChain?: ChatLunaLLMChain;
+     });
+-    static fromLLMAndTools(llm: ChatLunaChatModel, tools: ComputedRef<ChatLunaToolWrapper[]>, { botName, embeddings, summaryModel, historyMemory, preset, thoughtMessage, searchPrompt, newQuestionPrompt, summaryType, searchFailedPrompt, variableService, contextManager, browserManager, contextualCompressionPrompt }: ChatLunaBrowsingChainInput & {
++    static fromLLMAndTools(llm: ChatLunaChatModel, tools: ComputedRef<ChatLunaToolWrapper[]>, { botName, embeddings, summaryModel, historyMemory, preset, thoughtMessage, searchPrompt, newQuestionPrompt, summaryType, searchFailedPrompt, replySafetyCheckFails, variableService, contextManager, browserManager, contextualCompressionPrompt }: ChatLunaBrowsingChainInput & {
+         contextManager: ChatLunaContextManagerService;
+     }): ChatLunaBrowsingChain;
+     private _selectTool;
+@@ -61,7 +63,7 @@ export declare class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper imple
+     private _searchQuestions;
+     private _browseUrls;
+     private _appendSearchPrompt;
+-    get model(): ChatLunaChatModel;
++    get model(): any;
+ }
+ interface ChatLunaToolWrapper {
+     name: string;
+diff --git a/lib/config.d.ts b/lib/config.d.ts
+index bd0e8c73fd92c3ee4ef1b3303cab5009b5ef5cf9..456540cc8dbb68be2ef48c58e946ab22bbf737fe 100644
+--- a/lib/config.d.ts
++++ b/lib/config.d.ts
+@@ -9,6 +9,7 @@ export interface Config extends ChatLunaPlugin.Config {
+     summaryModel: string;
+     multiSourceMode: 'average' | 'total';
+     searchFailedPrompt: string;
++    replySafetyCheckFails?: string;
+     serperApiKey: string;
+     serperCountry: string;
+     serperLocation: string;
+@@ -20,6 +21,7 @@ export interface Config extends ChatLunaPlugin.Config {
+     maxWikipediaDocContentLength: number;
+     tavilyApiKey: string;
+     searxngBaseURL: string;
++    enableBrowser: boolean;
+     browserTimeout: number;
+     browserIdleTimeout: number;
+     browserMaxPages: number;
+diff --git a/lib/index.cjs b/lib/index.cjs
+index 23013e7a118fc2e3e0821839782092e39735b5dc..ef810310122b45e6b1c56ade0d8394e64993a6b3 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -33,14 +33,14 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
+ // src/locales/zh-CN.schema.yml
+ var require_zh_CN_schema = __commonJS({
+   "src/locales/zh-CN.schema.yml"(exports2, module2) {
+-    module2.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
++    module2.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
+   }
+ });
+ 
+ // src/locales/en-US.schema.yml
+ var require_en_US_schema = __commonJS({
+   "src/locales/en-US.schema.yml"(exports2, module2) {
+-    module2.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
++    module2.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
+   }
+ });
+ 
+@@ -166,6 +166,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+   searchPrompt;
+   searchFailedPrompt;
+   browserManager;
++  replySafetyCheckFails;
+   _toolMask;
+   constructor({
+     botName,
+@@ -184,7 +185,8 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+     browserManager,
+     summaryModel,
+     contextualCompressionPrompt,
+-    contextualCompressionChain
++    contextualCompressionChain,
++    replySafetyCheckFails
+   }) {
+     super();
+     this.botName = botName;
+@@ -196,6 +198,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+     this.thoughtMessage = thoughtMessage;
+     this.searchFailedPrompt = searchFailedPrompt;
+     this.newQuestionPrompt = newQuestionPrompt;
++    this.replySafetyCheckFails = replySafetyCheckFails;
+     this.variableService = variableService;
+     this.browserManager = browserManager;
+     this.searchPrompt = searchPrompt;
+@@ -217,6 +220,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+     newQuestionPrompt,
+     summaryType,
+     searchFailedPrompt,
++    replySafetyCheckFails,
+     variableService,
+     contextManager,
+     browserManager,
+@@ -251,6 +255,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+       preset,
+       thoughtMessage,
+       searchFailedPrompt,
++      replySafetyCheckFails,
+       searchPrompt,
+       newQuestionPrompt,
+       chain,
+@@ -311,6 +316,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+     ))["text"];
+     const searchAction = parseSearchAction(newQuestion);
+     logger?.debug(`action: ${JSON.stringify(searchAction)}`);
++    if (searchAction.safety === "block") {
++      if (this.replySafetyCheckFails != null && this.replySafetyCheckFails.length > 0) {
++        logger?.debug(
++          "blocked response: replySafetyCheckFails provided"
++        );
++        return {
++          message: new import_messages.AIMessage(this.replySafetyCheckFails)
++        };
++      }
++    }
+     if (searchAction != null && searchAction.action !== "skip") {
+       await this._search(
+         searchAction,
+@@ -403,6 +418,7 @@ Content: ${action.content.join("\n")}`
+     );
+   }
+   async _browseUrls(urls, session, conversationId, signal) {
++    if (!this.browserManager) return [];
+     const runConfig = {
+       configurable: {
+         model: this.model,
+@@ -531,10 +547,6 @@ var Config = import_koishi.Schema.intersect([
+       ])
+     ).default(["bing-web"]).role("select"),
+     topK: import_koishi.Schema.number().min(2).max(50).step(1).default(5),
+-    browserTimeout: import_koishi.Schema.number().default(6e4),
+-    browserIdleTimeout: import_koishi.Schema.number().default(3e5),
+-    browserMaxPages: import_koishi.Schema.number().min(1).max(20).default(6),
+-    browserOutputLimit: import_koishi.Schema.number().min(1e3).default(12e3),
+     summaryType: import_koishi.Schema.union([
+       import_koishi.Schema.const("speed"),
+       import_koishi.Schema.const("balanced"),
+@@ -546,7 +558,15 @@ var Config = import_koishi.Schema.intersect([
+     ]).default("average"),
+     summaryModel: import_koishi.Schema.dynamic("model").default("empty"),
+     searchThreshold: import_koishi.Schema.percent().step(0.01).default(0.25),
+-    contextualCompression: import_koishi.Schema.boolean().default(false)
++    contextualCompression: import_koishi.Schema.boolean().default(false),
++    replySafetyCheckFails: import_koishi.Schema.string().role("textarea").default("").description("安全阻断时的固定回复内容，为空则不阻断")
++  }),
++  import_koishi.Schema.object({
++    enableBrowser: import_koishi.Schema.boolean().default(true),
++    browserTimeout: import_koishi.Schema.number().default(6e4),
++    browserIdleTimeout: import_koishi.Schema.number().default(3e5),
++    browserMaxPages: import_koishi.Schema.number().min(1).max(20).default(6),
++    browserOutputLimit: import_koishi.Schema.number().min(1e3).default(12e3)
+   }),
+   import_koishi.Schema.object({
+     serperApiKey: import_koishi.Schema.string().role("secret"),
+@@ -863,27 +883,31 @@ var BingWebSearchProvider = class extends SearchProvider {
+   async search(query, limit = this.config.topK) {
+     const page = await this.ctx.puppeteer.page();
+     try {
+-      await page.evaluateOnNewDocument(() => {
+-        const newProto = navigator["__proto__"];
+-        delete newProto.webdriver;
+-        navigator["__proto__"] = newProto;
+-        window["chrome"] = {};
+-        window["chrome"].app = {
+-          InstallState: "hehe",
+-          RunningState: "haha",
+-          getDetails: "xixi",
+-          getIsInstalled: "ohno"
+-        };
+-        window["chrome"].csi = function() {
+-        };
+-        window["chrome"].loadTimes = function() {
+-        };
+-        window["chrome"].runtime = function() {
+-        };
+-        Object.defineProperty(navigator, "userAgent", {
+-          get: /* @__PURE__ */ __name(() => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.4044.113 Safari/537.36", "get")
+-        });
+-      });
++      await page.evaluateOnNewDocument(
++        // eslint-disable-next-line no-new-func
++        new Function(
++          `const newProto = navigator['__proto__']
++                    delete newProto.webdriver
++                    navigator['__proto__'] = newProto
++
++                    window['chrome'] = {}
++                    window['chrome'].app = {
++                        InstallState: 'hehe',
++                        RunningState: 'haha',
++                        getDetails: 'xixi',
++                        getIsInstalled: 'ohno'
++                    }
++                    window['chrome'].csi = function () {}
++                    window['chrome'].loadTimes = function () {}
++                    window['chrome'].runtime = function () {}
++
++                    Object.defineProperty(navigator, 'userAgent', {
++                        get: function () {
++                            return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.4044.113 Safari/537.36'
++                        }
++                    })`
++        )
++      );
+       await page.goto(
+         `https://cn.bing.com/search?form=QBRE&q=${encodeURIComponent(
+           query
+@@ -892,21 +916,30 @@ var BingWebSearchProvider = class extends SearchProvider {
+           waitUntil: "networkidle0"
+         }
+       );
+-      const summaries = await page.evaluate(() => {
+-        const liElements = Array.from(
+-          document.querySelectorAll("#b_results > .b_algo")
+-        );
+-        return liElements.map((li) => {
+-          const abstractElement = li.querySelector(".b_caption > p");
+-          const linkElement = li.querySelector("a");
+-          const imageElement = li.querySelector("img");
+-          const href = linkElement?.getAttribute("href") ?? "";
+-          const title = linkElement?.textContent ?? "";
+-          const description = abstractElement?.textContent ?? "";
+-          const image = imageElement?.getAttribute("src") ?? "";
+-          return { url: href, title, description, image };
+-        }).filter((summary) => summary.url && summary.title);
+-      });
++      const summaries = await page.evaluate(
++        // eslint-disable-next-line no-new-func
++        new Function(
++          `const liElements = Array.from(
++                        document.querySelectorAll('#b_results > .b_algo')
++                    )
++
++                    return liElements
++                        .map((li) => {
++                            const abstractElement =
++                                li.querySelector('.b_caption > p')
++                            const linkElement = li.querySelector('a')
++                            const imageElement = li.querySelector('img')
++
++                            const href = linkElement?.getAttribute('href') ?? ''
++                            const title = linkElement?.textContent ?? ''
++                            const description = abstractElement?.textContent ?? ''
++                            const image = imageElement?.getAttribute('src') ?? ''
++
++                            return { url: href, title, description, image }
++                        })
++                        .filter((summary) => summary.url && summary.title)`
++        )
++      );
+       return summaries.slice(0, limit);
+     } finally {
+       await page.close();
+@@ -918,7 +951,7 @@ var BingWebSearchProvider = class extends SearchProvider {
+   name = "bing-web";
+ };
+ function apply3(ctx, config, plugin, manager) {
+-  if (config.searchEngine.includes("bing-web")) {
++  if (config.enableBrowser && config.searchEngine.includes("bing-web")) {
+     manager.addProvider(new BingWebSearchProvider(ctx, config, plugin));
+   }
+ }
+@@ -1107,22 +1140,28 @@ var GoogleWebSearchProvider = class extends SearchProvider {
+         waitUntil: "networkidle2"
+       }
+     );
+-    const summaries = await page.evaluate(() => {
+-      const liElements = Array.from(
+-        document.querySelector("#search > div > div").childNodes
+-      );
+-      return liElements.map((li) => {
+-        const linkElement = li.querySelector("a");
+-        const href = linkElement.getAttribute("href");
+-        const title = linkElement.querySelector("a > h3").textContent;
+-        const abstract = Array.from(
+-          li.querySelectorAll(
+-            "div > div > div > div > div > div > span"
+-          )
+-        ).map((e) => e.textContent).join("");
+-        return { url: href, title, description: abstract };
+-      });
+-    });
++    const summaries = await page.evaluate(
++      // eslint-disable-next-line no-new-func
++      new Function(
++        `const liElements = Array.from(
++                    document.querySelector('#search > div > div').childNodes
++                )
++
++                return liElements.map((li) => {
++                    const linkElement = li.querySelector('a')
++                    const href = linkElement.getAttribute('href')
++                    const title = linkElement.querySelector('a > h3').textContent
++                    const abstract = Array.from(
++                        li.querySelectorAll(
++                            'div > div > div > div > div > div > span'
++                        )
++                    )
++                        .map((e) => e.textContent)
++                        .join('')
++                    return { url: href, title, description: abstract }
++                })`
++      )
++    );
+     await page.close();
+     return summaries.slice(0, limit);
+   }
+@@ -1132,7 +1171,7 @@ var GoogleWebSearchProvider = class extends SearchProvider {
+   name = "google-web";
+ };
+ function apply5(ctx, config, plugin, manager) {
+-  if (config.searchEngine.includes("google-web")) {
++  if (config.enableBrowser && config.searchEngine.includes("google-web")) {
+     manager.addProvider(new GoogleWebSearchProvider(ctx, config, plugin));
+   }
+ }
+@@ -1625,6 +1664,7 @@ var SearchTool = class extends import_tools.Tool {
+     if (result.description && result.description.length >= 500) {
+       return result.description;
+     }
++    if (!this.browser) return result.description;
+     const text = await (async () => {
+       try {
+         return this.summaryType === "quality" /* Quality */ ? await this.browser.summarize(
+@@ -1646,7 +1686,7 @@ var SearchTool = class extends import_tools.Tool {
+     if (documents.length < 1) return [];
+     if (this.embeddings === import_in_memory2.emptyEmbeddings) {
+       logger.warn("Embeddings is empty, try check your config");
+-      return documents.map((document2) => document2.metadata).slice(0, this.searchManager.config.topK * 2);
++      return documents.map((document) => document.metadata).slice(0, this.searchManager.config.topK * 2);
+     }
+     const vectorStore = new import_vectorstores2.MemoryVectorStore(this.embeddings);
+     await vectorStore.addDocuments(documents);
+@@ -1873,7 +1913,7 @@ var BrowserManager = class {
+       runConfig
+     ) : this.getPage(runConfig, input.pageId);
+     const text = await page.page.evaluate(
+-      (selector, includeLinks) => readBrowserText(selector, includeLinks),
++      readBrowserText,
+       input.selector,
+       input.includeLinks ?? false
+     );
+@@ -1885,10 +1925,7 @@ var BrowserManager = class {
+   }
+   async getHtml(input, runConfig) {
+     const page = input.url ? await this.open({ url: input.url }, runConfig) : this.getPage(runConfig, input.pageId);
+-    const html = await page.page.evaluate(
+-      (selector) => selector ? document.querySelector(selector)?.outerHTML ?? "" : document.documentElement.outerHTML,
+-      input.selector
+-    );
++    const html = await page.page.evaluate(readBrowserHtml, input.selector);
+     return await this.formatOutput({
+       name: "browser-html",
+       text: html,
+@@ -1897,7 +1934,7 @@ var BrowserManager = class {
+   }
+   async getLinks(input, runConfig) {
+     const page = input.url ? await this.open({ url: input.url }, runConfig) : this.getPage(runConfig, input.pageId);
+-    const links = await page.page.evaluate(() => readBrowserLinks());
++    const links = await page.page.evaluate(readBrowserLinks);
+     return await this.formatOutput({
+       name: "browser-links",
+       text: JSON.stringify(links, null, 2),
+@@ -1914,7 +1951,7 @@ var BrowserManager = class {
+       runConfig
+     ) : this.getPage(runConfig, input.pageId);
+     const text = await page.page.evaluate(
+-      (selector, includeLinks) => readBrowserText(selector, includeLinks),
++      readBrowserText,
+       input.selector,
+       input.includeLinks ?? false
+     );
+@@ -2025,12 +2062,11 @@ function getSessionKey(runConfig) {
+ __name(getSessionKey, "getSessionKey");
+ function assignSnapshotIds(raw, nodes, nextId) {
+   const uid = nextId();
+-  const node = Object.assign(Object.create(Object.getPrototypeOf(raw)), raw, {
+-    uid,
+-    children: (raw.children ?? []).map(
+-      (child) => assignSnapshotIds(child, nodes, nextId)
+-    )
+-  });
++  const node = raw;
++  node.uid = uid;
++  node.children = (raw.children ?? []).map(
++    (child) => assignSnapshotIds(child, nodes, nextId)
++  );
+   nodes.set(uid, node);
+   return node;
+ }
+@@ -2044,79 +2080,113 @@ If a focus is provided and the page is unrelated, output exactly: [none].
+ Include important facts, numbers, names, and source links when present.`;
+ }
+ __name(createSummaryPrompt, "createSummaryPrompt");
+-function readBrowserText(selector, includeLinks = false) {
+-  const root = selector ? document.querySelector(selector) : document.querySelector('article, main, [role="main"]') ?? document.body;
+-  if (!root) return "";
+-  const copy = root.cloneNode(true);
+-  copy.querySelectorAll(
+-    "script, style, noscript, svg, nav, header, footer"
+-  ).forEach((el) => el.remove());
+-  const lines = [];
+-  const walk = /* @__PURE__ */ __name((node) => {
+-    if (node.nodeType === Node.TEXT_NODE) {
+-      const text = node.textContent?.replace(/\s+/g, " ").trim();
+-      if (text) lines.push(text);
+-      return;
+-    }
+-    if (node.nodeType !== Node.ELEMENT_NODE) return;
+-    const el = node;
+-    const tag = el.tagName.toLowerCase();
+-    if (/^h[1-6]$/.test(tag)) {
+-      lines.push(
+-        "\n" + "#".repeat(Number(tag[1])) + " " + el.textContent?.trim()
+-      );
+-      return;
+-    }
+-    if (tag === "p" || tag === "section" || tag === "article")
+-      lines.push("\n");
+-    if (tag === "li") lines.push("\n- ");
+-    if (tag === "br") lines.push("\n");
+-    if (tag === "pre") {
+-      lines.push("\n```\n" + el.textContent?.trim() + "\n```\n");
+-      return;
++var readBrowserText = new Function(
++  "selector",
++  "includeLinks",
++  String.raw`const root = selector
++        ? document.querySelector(selector)
++        : (document.querySelector('article, main, [role="main"]') ??
++          document.body)
++    if (!root) return ''
++
++    const copy = root.cloneNode(true)
++    copy.querySelectorAll(
++        'script, style, noscript, svg, nav, header, footer'
++    ).forEach((el) => el.remove())
++
++    const lines = []
++    function walk(node) {
++        if (node.nodeType === Node.TEXT_NODE) {
++            const text = node.textContent?.replace(/\s+/g, ' ').trim()
++            if (text) lines.push(text)
++            return
++        }
++        if (node.nodeType !== Node.ELEMENT_NODE) return
++
++        const el = node
++        const tag = el.tagName.toLowerCase()
++        if (/^h[1-6]$/.test(tag)) {
++            lines.push(
++                '\n' + '#'.repeat(Number(tag[1])) + ' ' + el.textContent?.trim()
++            )
++            return
++        }
++        if (tag === 'p' || tag === 'section' || tag === 'article')
++            lines.push('\n')
++        if (tag === 'li') lines.push('\n- ')
++        if (tag === 'br') lines.push('\n')
++        if (tag === 'pre') {
++            lines.push(
++                '\n\x60\x60\x60\n' + el.textContent?.trim() + '\n\x60\x60\x60\n'
++            )
++            return
++        }
++        if (tag === 'tr') lines.push('\n| ')
++        if (tag === 'td' || tag === 'th') {
++            lines.push((el.textContent ?? '').trim() + ' | ')
++            return
++        }
++
++        for (const child of Array.from(el.childNodes)) walk(child)
+     }
+-    if (tag === "tr") lines.push("\n| ");
+-    if (tag === "td" || tag === "th") {
+-      lines.push((el.textContent ?? "").trim() + " | ");
+-      return;
++
++    walk(copy)
++
++    if (includeLinks) {
++        const links = Array.from(copy.querySelectorAll('a[href]'))
++            .map((a) => {
++                const text = a.textContent?.replace(/\s+/g, ' ').trim()
++                const href = a.getAttribute('href')
++                return text && href
++                    ? '- [' + text + '](' + new URL(href, location.href).href + ')'
++                    : ''
++            })
++            .filter(Boolean)
++            .slice(0, 30)
++        if (links.length > 0) lines.push('\n\n## Links\n' + links.join('\n'))
+     }
+-    for (const child of Array.from(el.childNodes)) walk(child);
+-  }, "walk");
+-  walk(copy);
+-  if (includeLinks) {
+-    const links = Array.from(copy.querySelectorAll("a[href]")).map((a) => {
+-      const text = a.textContent?.replace(/\s+/g, " ").trim();
+-      const href = a.getAttribute("href");
+-      return text && href ? `- [${text}](${new URL(href, location.href).href})` : "";
+-    }).filter(Boolean).slice(0, 30);
+-    if (links.length > 0) lines.push("\n\n## Links\n" + links.join("\n"));
+-  }
+-  return lines.join(" ").replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+-}
+-__name(readBrowserText, "readBrowserText");
+-function readBrowserLinks() {
+-  const current = new URL(location.href);
+-  const host = current.hostname;
+-  const result = {
+-    sameSite: [],
+-    external: []
+-  };
+-  for (const a of Array.from(document.querySelectorAll("a[href]"))) {
+-    const text = a.textContent?.replace(/\s+/g, " ").trim();
+-    if (!text) continue;
+-    const url = new URL(a.getAttribute("href"), current.href);
+-    if (url.hash && url.origin === current.origin && url.pathname === current.pathname && url.search === current.search) {
+-      continue;
+-    }
+-    const item = { text, url: url.href };
+-    if (url.hostname === host) result.sameSite.push(item);
+-    else result.external.push(item);
+-  }
+-  result.sameSite = result.sameSite.slice(0, 100);
+-  result.external = result.external.slice(0, 100);
+-  return result;
+-}
+-__name(readBrowserLinks, "readBrowserLinks");
++
++    return lines
++        .join(' ')
++        .replace(/[ \t]+\n/g, '\n')
++        .replace(/\n[ \t]+/g, '\n')
++        .replace(/[ \t]{2,}/g, ' ')
++        .replace(/\n{3,}/g, '\n\n')
++        .trim()`
++);
++var readBrowserHtml = new Function(
++  "selector",
++  String.raw`return selector
++        ? (document.querySelector(selector)?.outerHTML ?? '')
++        : document.documentElement.outerHTML`
++);
++var readBrowserLinks = new Function(
++  String.raw`const current = new URL(location.href)
++    const host = current.hostname
++    const result = {
++        sameSite: [],
++        external: []
++    }
++    for (const a of Array.from(document.querySelectorAll('a[href]'))) {
++        const text = a.textContent?.replace(/\s+/g, ' ').trim()
++        if (!text) continue
++        const url = new URL(a.getAttribute('href'), current.href)
++        if (
++            url.hash &&
++            url.origin === current.origin &&
++            url.pathname === current.pathname &&
++            url.search === current.search
++        ) {
++            continue
++        }
++        const item = { text, url: url.href }
++        if (url.hostname === host) result.sameSite.push(item)
++        else result.external.push(item)
++    }
++    result.sameSite = result.sameSite.slice(0, 100)
++    result.external = result.external.slice(0, 100)
++    return result`
++);
+ 
+ // src/tools/browser/tools.ts
+ var import_promises2 = require("fs/promises");
+@@ -2422,9 +2492,8 @@ var BrowserWaitForTool = class extends import_tools2.StructuredTool {
+   async _call(input, _, cfg) {
+     const page = this.manager.getPage(cfg, input.pageId);
+     await page.page.waitForFunction(
+-      (text) => document.body?.innerText?.includes(text),
+-      { timeout: input.timeout ?? this.manager.config.browserTimeout },
+-      input.text
++      `document.body?.innerText?.includes(${JSON.stringify(input.text)})`,
++      { timeout: input.timeout ?? this.manager.config.browserTimeout }
+     );
+     return `Text found: ${input.text}`;
+   }
+@@ -2682,10 +2751,12 @@ var BrowserEvaluateTool = class extends import_tools2.StructuredTool {
+         handles.push(await this.manager.getElement(page, uid));
+       }
+       const result = await page.page.evaluate(
+-        async (fnText, ...args) => {
+-          const fn = new Function(`return (${fnText})`)();
+-          return await fn(...args);
+-        },
++        // eslint-disable-next-line no-new-func
++        new Function(
++          "fnText",
++          "...args",
++          "const fn = new Function('return (' + fnText + ')')()\nreturn fn(...args)"
++        ),
+         input.function,
+         ...handles
+       );
+@@ -2763,27 +2834,35 @@ __name(actionResult, "actionResult");
+ async function fillElement(manager, page, uid, value) {
+   const el = await manager.getElement(page, uid);
+   try {
+-    await el.evaluate((node, value2) => {
+-      if (node instanceof HTMLInputElement) {
+-        if (node.type === "checkbox" || node.type === "radio") {
+-          node.checked = value2 === "true";
+-        } else {
+-          node.value = value2;
+-        }
+-        node.dispatchEvent(new Event("input", { bubbles: true }));
+-        node.dispatchEvent(new Event("change", { bubbles: true }));
+-        return;
+-      }
+-      if (node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
+-        node.value = value2;
+-        node.dispatchEvent(new Event("input", { bubbles: true }));
+-        node.dispatchEvent(new Event("change", { bubbles: true }));
+-        return;
+-      }
+-      ;
+-      node.innerText = value2;
+-      node.dispatchEvent(new Event("input", { bubbles: true }));
+-    }, value);
++    await el.evaluate(
++      // eslint-disable-next-line no-new-func
++      new Function(
++        "node",
++        "value",
++        `if (node instanceof HTMLInputElement) {
++                    if (node.type === 'checkbox' || node.type === 'radio') {
++                        node.checked = value === 'true'
++                    } else {
++                        node.value = value
++                    }
++                    node.dispatchEvent(new Event('input', { bubbles: true }))
++                    node.dispatchEvent(new Event('change', { bubbles: true }))
++                    return
++                }
++                if (
++                    node instanceof HTMLTextAreaElement ||
++                    node instanceof HTMLSelectElement
++                ) {
++                    node.value = value
++                    node.dispatchEvent(new Event('input', { bubbles: true }))
++                    node.dispatchEvent(new Event('change', { bubbles: true }))
++                    return
++                }
++                node.innerText = value
++                node.dispatchEvent(new Event('input', { bubbles: true }))`
++      ),
++      value
++    );
+   } finally {
+     await el.dispose();
+   }
+@@ -2803,9 +2882,16 @@ function apply10(ctx, config) {
+       false
+     );
+     const searchManager = new SearchManager(ctx, config);
+-    const browserManager = new BrowserManager(ctx, config);
++    if (config.enableBrowser && !ctx.puppeteer) {
++      logger.warn(
++        "Browser tools are disabled because puppeteer is not available."
++      );
++    }
++    const browserManager = config.enableBrowser && ctx.puppeteer ? new BrowserManager(ctx, config) : void 0;
+     const summaryModel = (0, import_koishi_plugin_chatluna.computed)(() => keywordExtractModel?.value);
+-    registerBrowserTools(plugin, browserManager, summaryModel);
++    if (browserManager) {
++      registerBrowserTools(plugin, browserManager, summaryModel);
++    }
+     if (config.searchEngine.length > 0) {
+       await providerPlugin(ctx, config, plugin, searchManager);
+       plugin.registerTool("web_search", {
+@@ -2849,7 +2935,7 @@ function apply10(ctx, config) {
+         (params) => {
+           const tools = getTools(
+             ctx.chatluna.platform,
+-            (name2) => name2 === "web_search" || name2.startsWith("browser_")
++            (name2) => name2 === "web_search" || config.enableBrowser && name2.startsWith("browser_")
+           );
+           const summaryModel2 = (0, import_koishi_plugin_chatluna.computed)(
+             () => keywordExtractModel?.value ?? params.model
+@@ -2867,6 +2953,7 @@ function apply10(ctx, config) {
+             newQuestionPrompt: config.newQuestionPrompt,
+             contextualCompressionPrompt: config.contextualCompression ? config.contextualCompressionPrompt : void 0,
+             searchFailedPrompt: config.searchFailedPrompt,
++            replySafetyCheckFails: config.replySafetyCheckFails,
+             variableService: ctx.chatluna.promptRenderer,
+             contextManager: ctx.chatluna.contextManager,
+             browserManager
+@@ -2904,8 +2991,8 @@ async function createModel(ctx, model) {
+ }
+ __name(createModel, "createModel");
+ var inject = {
+-  required: ["chatluna", "puppeteer"],
+-  optional: ["chatluna_agent"]
++  required: ["chatluna"],
++  optional: ["puppeteer", "chatluna_agent"]
+ };
+ var name = "chatluna-search-service";
+ // Annotate the CommonJS export names for ESM import in node:
+diff --git a/lib/index.mjs b/lib/index.mjs
+index a1912e680374e682d2a2113486090ee623533a12..578b2debb5ddaf8a746ca92c4043d4259e85f3d1 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -8,14 +8,14 @@ var __commonJS = (cb, mod) => function __require() {
+ // src/locales/zh-CN.schema.yml
+ var require_zh_CN_schema = __commonJS({
+   "src/locales/zh-CN.schema.yml"(exports, module) {
+-    module.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
++    module.exports = { $inner: [{}, { $desc: "搜索服务配置", searchEngine: { $desc: "搜索引擎。" }, topK: "参考结果数量（2-50）。", enhancedSummary: "是否使用增强摘要。", fastEnhancedSummary: "是否使用快速增强摘要。开启后将不调用模型，直接返回搜索结果。（需要上下文较大的模型）", summaryModel: "处理摘要和关键词的模型。选择较小并且速度较快的模型可以获得更快的响应速度。", searchConfidenceThreshold: "搜索决策的置信阈值。较高的值意味着更可能进行搜索。", contextualCompression: "是否对搜索结果进行上下文压缩。将会基于选择的摘要模型对搜索结果进行压缩。", summaryType: { $desc: "摘要模式。不同的摘要模式可以提高信息的质量。", $inner: ["性能模式。注重快速的信息获取。", "平衡模式。在信息获取和信息质量之间取得平衡。", "质量模式。注重高信息质量的获取。"] }, searchThreshold: "搜索内容的相似度阈值。", multiSourceMode: { $desc: "多源模式。", $inner: ["平均模式。将多个来源的搜索结果各取平均个。", "总和模式。将多个来源的搜索结果进行总和后取前 topK 个。"] } }, { $desc: "浏览器设置", enableBrowser: "是否启用浏览器功能。浏览器工具、URL 浏览、Bing (Web) 和 Google (Web) 需要开启。", browserTimeout: "浏览器操作超时时间（毫秒）。", browserIdleTimeout: "浏览器空闲超时时间（毫秒）。", browserMaxPages: "每个会话最多保留的浏览器页面数量。", browserOutputLimit: "浏览器工具输出保存到文件前的最大文本长度。" }, { $desc: "Serper 设置", serperApiKey: "Serper API 密钥。", serperCountry: "Serper 搜索国家。", serperLocation: "Serper 搜索地区。", serperSearchResults: "Serper 搜索返回结果数量。" }, { $desc: "Bing API 设置", bingSearchApiKey: "Bing API 密钥。", bingSearchLocation: "Bing API 搜索地区。", azureLocation: "Azure API 搜索地区。" }, { $desc: "Tavily 设置", tavilyApiKey: "Tavily API 密钥。" }, { $desc: "Wikipedia 设置", wikipediaBaseURL: "Wikipedia API 基础 URL。", maxWikipediaDocContentLength: "Wikipedia 文档内容最大长度。" }, { $desc: "SearxNG 设置", searxngBaseURL: "SearxNG API 基础 URL。" }, { $desc: "进阶设置", searchPrompt: "搜索提示词。用于对搜索结果总结的 Prompt。", newQuestionPrompt: "新问题提示词。用于生成新问题的 Prompt。", summaryPrompt: "文档总结提示词。用于总结文档的 Prompt。", searchFailedPrompt: "搜索失败时返回给模型的提示词。为空则不返回。", contextualCompressionPrompt: "上下文压缩提示词。用于压缩搜索结果上下文的 Prompt。" }] };
+   }
+ });
+ 
+ // src/locales/en-US.schema.yml
+ var require_en_US_schema = __commonJS({
+   "src/locales/en-US.schema.yml"(exports, module) {
+-    module.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
++    module.exports = { $inner: [{}, { $desc: "Search Service Configuration", searchEngine: { $desc: "Search engine" }, topK: "Number of reference results (2-50)", enhancedSummary: "Enable enhanced summary", fastEnhancedSummary: "Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)", contextualCompression: "Enable contextual compression. Will compress the search results based on the selected summary model.", summaryModel: "Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.", summaryType: { $desc: "Summary mode. Different summary modes can improve the quality of information.", $inner: ["Performance mode. Focuses on quick information retrieval.", "Balanced mode. Strikes a balance between information retrieval and information quality.", "Quality mode. Focuses on obtaining high-quality information."] }, searchThreshold: "Similarity threshold for search content. Higher values mean more likely to search.", multiSourceMode: { $desc: "Multi-source mode.", $inner: ["Average mode. Takes an average number of search results from each source.", "Sum mode. Combines search results from multiple sources and takes the top K results."] } }, { $desc: "Browser Settings", enableBrowser: "Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).", browserTimeout: "Browser operation timeout (ms)", browserIdleTimeout: "Browser idle timeout (ms)", browserMaxPages: "Maximum browser pages per conversation", browserOutputLimit: "Maximum browser tool output length before saving to file" }, { $desc: "Serper Settings", serperApiKey: "Serper API key", serperCountry: "Serper search country", serperLocation: "Serper search location", serperSearchResults: "Number of Serper search results" }, { $desc: "Bing API Settings", bingSearchApiKey: "Bing API key", bingSearchLocation: "Bing API search location", azureLocation: "Azure API search location" }, { $desc: "Tavily Settings", tavilyApiKey: "Tavily API key" }, { $desc: "Wikipedia Settings", wikipediaBaseURL: "Wikipedia API base URL", maxWikipediaDocContentLength: "Wikipedia document content maximum length" }, { $desc: "SearxNG Settings", searxngBaseURL: "SearxNG API base URL" }, { $desc: "Advanced Settings", searchPrompt: "Search prompt. Used for summarizing search results.", newQuestionPrompt: "New question prompt. Used for generating new questions.", summaryPrompt: "Summary prompt. Used for summarizing documents.", searchFailedPrompt: "Prompt returned to the model when search fails. If empty, nothing is returned.", contextualCompressionPrompt: "Contextual compression prompt. Used for compressing search results based on the selected summary model." }] };
+   }
+ });
+ 
+@@ -141,6 +141,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+   searchPrompt;
+   searchFailedPrompt;
+   browserManager;
++  replySafetyCheckFails;
+   _toolMask;
+   constructor({
+     botName,
+@@ -159,7 +160,8 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+     browserManager,
+     summaryModel,
+     contextualCompressionPrompt,
+-    contextualCompressionChain
++    contextualCompressionChain,
++    replySafetyCheckFails
+   }) {
+     super();
+     this.botName = botName;
+@@ -171,6 +173,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+     this.thoughtMessage = thoughtMessage;
+     this.searchFailedPrompt = searchFailedPrompt;
+     this.newQuestionPrompt = newQuestionPrompt;
++    this.replySafetyCheckFails = replySafetyCheckFails;
+     this.variableService = variableService;
+     this.browserManager = browserManager;
+     this.searchPrompt = searchPrompt;
+@@ -192,6 +195,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+     newQuestionPrompt,
+     summaryType,
+     searchFailedPrompt,
++    replySafetyCheckFails,
+     variableService,
+     contextManager,
+     browserManager,
+@@ -226,6 +230,7 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+       preset,
+       thoughtMessage,
+       searchFailedPrompt,
++      replySafetyCheckFails,
+       searchPrompt,
+       newQuestionPrompt,
+       chain,
+@@ -286,6 +291,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+     ))["text"];
+     const searchAction = parseSearchAction(newQuestion);
+     logger?.debug(`action: ${JSON.stringify(searchAction)}`);
++    if (searchAction.safety === "block") {
++      if (this.replySafetyCheckFails != null && this.replySafetyCheckFails.length > 0) {
++        logger?.debug(
++          "blocked response: replySafetyCheckFails provided"
++        );
++        return {
++          message: new AIMessage(this.replySafetyCheckFails)
++        };
++      }
++    }
+     if (searchAction != null && searchAction.action !== "skip") {
+       await this._search(
+         searchAction,
+@@ -378,6 +393,7 @@ Content: ${action.content.join("\n")}`
+     );
+   }
+   async _browseUrls(urls, session, conversationId, signal) {
++    if (!this.browserManager) return [];
+     const runConfig = {
+       configurable: {
+         model: this.model,
+@@ -506,10 +522,6 @@ var Config = Schema.intersect([
+       ])
+     ).default(["bing-web"]).role("select"),
+     topK: Schema.number().min(2).max(50).step(1).default(5),
+-    browserTimeout: Schema.number().default(6e4),
+-    browserIdleTimeout: Schema.number().default(3e5),
+-    browserMaxPages: Schema.number().min(1).max(20).default(6),
+-    browserOutputLimit: Schema.number().min(1e3).default(12e3),
+     summaryType: Schema.union([
+       Schema.const("speed"),
+       Schema.const("balanced"),
+@@ -521,7 +533,15 @@ var Config = Schema.intersect([
+     ]).default("average"),
+     summaryModel: Schema.dynamic("model").default("empty"),
+     searchThreshold: Schema.percent().step(0.01).default(0.25),
+-    contextualCompression: Schema.boolean().default(false)
++    contextualCompression: Schema.boolean().default(false),
++    replySafetyCheckFails: Schema.string().role("textarea").default("").description("安全阻断时的固定回复内容，为空则不阻断")
++  }),
++  Schema.object({
++    enableBrowser: Schema.boolean().default(true),
++    browserTimeout: Schema.number().default(6e4),
++    browserIdleTimeout: Schema.number().default(3e5),
++    browserMaxPages: Schema.number().min(1).max(20).default(6),
++    browserOutputLimit: Schema.number().min(1e3).default(12e3)
+   }),
+   Schema.object({
+     serperApiKey: Schema.string().role("secret"),
+@@ -838,27 +858,31 @@ var BingWebSearchProvider = class extends SearchProvider {
+   async search(query, limit = this.config.topK) {
+     const page = await this.ctx.puppeteer.page();
+     try {
+-      await page.evaluateOnNewDocument(() => {
+-        const newProto = navigator["__proto__"];
+-        delete newProto.webdriver;
+-        navigator["__proto__"] = newProto;
+-        window["chrome"] = {};
+-        window["chrome"].app = {
+-          InstallState: "hehe",
+-          RunningState: "haha",
+-          getDetails: "xixi",
+-          getIsInstalled: "ohno"
+-        };
+-        window["chrome"].csi = function() {
+-        };
+-        window["chrome"].loadTimes = function() {
+-        };
+-        window["chrome"].runtime = function() {
+-        };
+-        Object.defineProperty(navigator, "userAgent", {
+-          get: /* @__PURE__ */ __name(() => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.4044.113 Safari/537.36", "get")
+-        });
+-      });
++      await page.evaluateOnNewDocument(
++        // eslint-disable-next-line no-new-func
++        new Function(
++          `const newProto = navigator['__proto__']
++                    delete newProto.webdriver
++                    navigator['__proto__'] = newProto
++
++                    window['chrome'] = {}
++                    window['chrome'].app = {
++                        InstallState: 'hehe',
++                        RunningState: 'haha',
++                        getDetails: 'xixi',
++                        getIsInstalled: 'ohno'
++                    }
++                    window['chrome'].csi = function () {}
++                    window['chrome'].loadTimes = function () {}
++                    window['chrome'].runtime = function () {}
++
++                    Object.defineProperty(navigator, 'userAgent', {
++                        get: function () {
++                            return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.4044.113 Safari/537.36'
++                        }
++                    })`
++        )
++      );
+       await page.goto(
+         `https://cn.bing.com/search?form=QBRE&q=${encodeURIComponent(
+           query
+@@ -867,21 +891,30 @@ var BingWebSearchProvider = class extends SearchProvider {
+           waitUntil: "networkidle0"
+         }
+       );
+-      const summaries = await page.evaluate(() => {
+-        const liElements = Array.from(
+-          document.querySelectorAll("#b_results > .b_algo")
+-        );
+-        return liElements.map((li) => {
+-          const abstractElement = li.querySelector(".b_caption > p");
+-          const linkElement = li.querySelector("a");
+-          const imageElement = li.querySelector("img");
+-          const href = linkElement?.getAttribute("href") ?? "";
+-          const title = linkElement?.textContent ?? "";
+-          const description = abstractElement?.textContent ?? "";
+-          const image = imageElement?.getAttribute("src") ?? "";
+-          return { url: href, title, description, image };
+-        }).filter((summary) => summary.url && summary.title);
+-      });
++      const summaries = await page.evaluate(
++        // eslint-disable-next-line no-new-func
++        new Function(
++          `const liElements = Array.from(
++                        document.querySelectorAll('#b_results > .b_algo')
++                    )
++
++                    return liElements
++                        .map((li) => {
++                            const abstractElement =
++                                li.querySelector('.b_caption > p')
++                            const linkElement = li.querySelector('a')
++                            const imageElement = li.querySelector('img')
++
++                            const href = linkElement?.getAttribute('href') ?? ''
++                            const title = linkElement?.textContent ?? ''
++                            const description = abstractElement?.textContent ?? ''
++                            const image = imageElement?.getAttribute('src') ?? ''
++
++                            return { url: href, title, description, image }
++                        })
++                        .filter((summary) => summary.url && summary.title)`
++        )
++      );
+       return summaries.slice(0, limit);
+     } finally {
+       await page.close();
+@@ -893,7 +926,7 @@ var BingWebSearchProvider = class extends SearchProvider {
+   name = "bing-web";
+ };
+ function apply3(ctx, config, plugin, manager) {
+-  if (config.searchEngine.includes("bing-web")) {
++  if (config.enableBrowser && config.searchEngine.includes("bing-web")) {
+     manager.addProvider(new BingWebSearchProvider(ctx, config, plugin));
+   }
+ }
+@@ -1082,22 +1115,28 @@ var GoogleWebSearchProvider = class extends SearchProvider {
+         waitUntil: "networkidle2"
+       }
+     );
+-    const summaries = await page.evaluate(() => {
+-      const liElements = Array.from(
+-        document.querySelector("#search > div > div").childNodes
+-      );
+-      return liElements.map((li) => {
+-        const linkElement = li.querySelector("a");
+-        const href = linkElement.getAttribute("href");
+-        const title = linkElement.querySelector("a > h3").textContent;
+-        const abstract = Array.from(
+-          li.querySelectorAll(
+-            "div > div > div > div > div > div > span"
+-          )
+-        ).map((e) => e.textContent).join("");
+-        return { url: href, title, description: abstract };
+-      });
+-    });
++    const summaries = await page.evaluate(
++      // eslint-disable-next-line no-new-func
++      new Function(
++        `const liElements = Array.from(
++                    document.querySelector('#search > div > div').childNodes
++                )
++
++                return liElements.map((li) => {
++                    const linkElement = li.querySelector('a')
++                    const href = linkElement.getAttribute('href')
++                    const title = linkElement.querySelector('a > h3').textContent
++                    const abstract = Array.from(
++                        li.querySelectorAll(
++                            'div > div > div > div > div > div > span'
++                        )
++                    )
++                        .map((e) => e.textContent)
++                        .join('')
++                    return { url: href, title, description: abstract }
++                })`
++      )
++    );
+     await page.close();
+     return summaries.slice(0, limit);
+   }
+@@ -1107,7 +1146,7 @@ var GoogleWebSearchProvider = class extends SearchProvider {
+   name = "google-web";
+ };
+ function apply5(ctx, config, plugin, manager) {
+-  if (config.searchEngine.includes("google-web")) {
++  if (config.enableBrowser && config.searchEngine.includes("google-web")) {
+     manager.addProvider(new GoogleWebSearchProvider(ctx, config, plugin));
+   }
+ }
+@@ -1600,6 +1639,7 @@ var SearchTool = class extends Tool {
+     if (result.description && result.description.length >= 500) {
+       return result.description;
+     }
++    if (!this.browser) return result.description;
+     const text = await (async () => {
+       try {
+         return this.summaryType === "quality" /* Quality */ ? await this.browser.summarize(
+@@ -1621,7 +1661,7 @@ var SearchTool = class extends Tool {
+     if (documents.length < 1) return [];
+     if (this.embeddings === emptyEmbeddings) {
+       logger.warn("Embeddings is empty, try check your config");
+-      return documents.map((document2) => document2.metadata).slice(0, this.searchManager.config.topK * 2);
++      return documents.map((document) => document.metadata).slice(0, this.searchManager.config.topK * 2);
+     }
+     const vectorStore = new MemoryVectorStore2(this.embeddings);
+     await vectorStore.addDocuments(documents);
+@@ -1848,7 +1888,7 @@ var BrowserManager = class {
+       runConfig
+     ) : this.getPage(runConfig, input.pageId);
+     const text = await page.page.evaluate(
+-      (selector, includeLinks) => readBrowserText(selector, includeLinks),
++      readBrowserText,
+       input.selector,
+       input.includeLinks ?? false
+     );
+@@ -1860,10 +1900,7 @@ var BrowserManager = class {
+   }
+   async getHtml(input, runConfig) {
+     const page = input.url ? await this.open({ url: input.url }, runConfig) : this.getPage(runConfig, input.pageId);
+-    const html = await page.page.evaluate(
+-      (selector) => selector ? document.querySelector(selector)?.outerHTML ?? "" : document.documentElement.outerHTML,
+-      input.selector
+-    );
++    const html = await page.page.evaluate(readBrowserHtml, input.selector);
+     return await this.formatOutput({
+       name: "browser-html",
+       text: html,
+@@ -1872,7 +1909,7 @@ var BrowserManager = class {
+   }
+   async getLinks(input, runConfig) {
+     const page = input.url ? await this.open({ url: input.url }, runConfig) : this.getPage(runConfig, input.pageId);
+-    const links = await page.page.evaluate(() => readBrowserLinks());
++    const links = await page.page.evaluate(readBrowserLinks);
+     return await this.formatOutput({
+       name: "browser-links",
+       text: JSON.stringify(links, null, 2),
+@@ -1889,7 +1926,7 @@ var BrowserManager = class {
+       runConfig
+     ) : this.getPage(runConfig, input.pageId);
+     const text = await page.page.evaluate(
+-      (selector, includeLinks) => readBrowserText(selector, includeLinks),
++      readBrowserText,
+       input.selector,
+       input.includeLinks ?? false
+     );
+@@ -2000,12 +2037,11 @@ function getSessionKey(runConfig) {
+ __name(getSessionKey, "getSessionKey");
+ function assignSnapshotIds(raw, nodes, nextId) {
+   const uid = nextId();
+-  const node = Object.assign(Object.create(Object.getPrototypeOf(raw)), raw, {
+-    uid,
+-    children: (raw.children ?? []).map(
+-      (child) => assignSnapshotIds(child, nodes, nextId)
+-    )
+-  });
++  const node = raw;
++  node.uid = uid;
++  node.children = (raw.children ?? []).map(
++    (child) => assignSnapshotIds(child, nodes, nextId)
++  );
+   nodes.set(uid, node);
+   return node;
+ }
+@@ -2019,79 +2055,113 @@ If a focus is provided and the page is unrelated, output exactly: [none].
+ Include important facts, numbers, names, and source links when present.`;
+ }
+ __name(createSummaryPrompt, "createSummaryPrompt");
+-function readBrowserText(selector, includeLinks = false) {
+-  const root = selector ? document.querySelector(selector) : document.querySelector('article, main, [role="main"]') ?? document.body;
+-  if (!root) return "";
+-  const copy = root.cloneNode(true);
+-  copy.querySelectorAll(
+-    "script, style, noscript, svg, nav, header, footer"
+-  ).forEach((el) => el.remove());
+-  const lines = [];
+-  const walk = /* @__PURE__ */ __name((node) => {
+-    if (node.nodeType === Node.TEXT_NODE) {
+-      const text = node.textContent?.replace(/\s+/g, " ").trim();
+-      if (text) lines.push(text);
+-      return;
+-    }
+-    if (node.nodeType !== Node.ELEMENT_NODE) return;
+-    const el = node;
+-    const tag = el.tagName.toLowerCase();
+-    if (/^h[1-6]$/.test(tag)) {
+-      lines.push(
+-        "\n" + "#".repeat(Number(tag[1])) + " " + el.textContent?.trim()
+-      );
+-      return;
+-    }
+-    if (tag === "p" || tag === "section" || tag === "article")
+-      lines.push("\n");
+-    if (tag === "li") lines.push("\n- ");
+-    if (tag === "br") lines.push("\n");
+-    if (tag === "pre") {
+-      lines.push("\n```\n" + el.textContent?.trim() + "\n```\n");
+-      return;
++var readBrowserText = new Function(
++  "selector",
++  "includeLinks",
++  String.raw`const root = selector
++        ? document.querySelector(selector)
++        : (document.querySelector('article, main, [role="main"]') ??
++          document.body)
++    if (!root) return ''
++
++    const copy = root.cloneNode(true)
++    copy.querySelectorAll(
++        'script, style, noscript, svg, nav, header, footer'
++    ).forEach((el) => el.remove())
++
++    const lines = []
++    function walk(node) {
++        if (node.nodeType === Node.TEXT_NODE) {
++            const text = node.textContent?.replace(/\s+/g, ' ').trim()
++            if (text) lines.push(text)
++            return
++        }
++        if (node.nodeType !== Node.ELEMENT_NODE) return
++
++        const el = node
++        const tag = el.tagName.toLowerCase()
++        if (/^h[1-6]$/.test(tag)) {
++            lines.push(
++                '\n' + '#'.repeat(Number(tag[1])) + ' ' + el.textContent?.trim()
++            )
++            return
++        }
++        if (tag === 'p' || tag === 'section' || tag === 'article')
++            lines.push('\n')
++        if (tag === 'li') lines.push('\n- ')
++        if (tag === 'br') lines.push('\n')
++        if (tag === 'pre') {
++            lines.push(
++                '\n\x60\x60\x60\n' + el.textContent?.trim() + '\n\x60\x60\x60\n'
++            )
++            return
++        }
++        if (tag === 'tr') lines.push('\n| ')
++        if (tag === 'td' || tag === 'th') {
++            lines.push((el.textContent ?? '').trim() + ' | ')
++            return
++        }
++
++        for (const child of Array.from(el.childNodes)) walk(child)
+     }
+-    if (tag === "tr") lines.push("\n| ");
+-    if (tag === "td" || tag === "th") {
+-      lines.push((el.textContent ?? "").trim() + " | ");
+-      return;
++
++    walk(copy)
++
++    if (includeLinks) {
++        const links = Array.from(copy.querySelectorAll('a[href]'))
++            .map((a) => {
++                const text = a.textContent?.replace(/\s+/g, ' ').trim()
++                const href = a.getAttribute('href')
++                return text && href
++                    ? '- [' + text + '](' + new URL(href, location.href).href + ')'
++                    : ''
++            })
++            .filter(Boolean)
++            .slice(0, 30)
++        if (links.length > 0) lines.push('\n\n## Links\n' + links.join('\n'))
+     }
+-    for (const child of Array.from(el.childNodes)) walk(child);
+-  }, "walk");
+-  walk(copy);
+-  if (includeLinks) {
+-    const links = Array.from(copy.querySelectorAll("a[href]")).map((a) => {
+-      const text = a.textContent?.replace(/\s+/g, " ").trim();
+-      const href = a.getAttribute("href");
+-      return text && href ? `- [${text}](${new URL(href, location.href).href})` : "";
+-    }).filter(Boolean).slice(0, 30);
+-    if (links.length > 0) lines.push("\n\n## Links\n" + links.join("\n"));
+-  }
+-  return lines.join(" ").replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+-}
+-__name(readBrowserText, "readBrowserText");
+-function readBrowserLinks() {
+-  const current = new URL(location.href);
+-  const host = current.hostname;
+-  const result = {
+-    sameSite: [],
+-    external: []
+-  };
+-  for (const a of Array.from(document.querySelectorAll("a[href]"))) {
+-    const text = a.textContent?.replace(/\s+/g, " ").trim();
+-    if (!text) continue;
+-    const url = new URL(a.getAttribute("href"), current.href);
+-    if (url.hash && url.origin === current.origin && url.pathname === current.pathname && url.search === current.search) {
+-      continue;
+-    }
+-    const item = { text, url: url.href };
+-    if (url.hostname === host) result.sameSite.push(item);
+-    else result.external.push(item);
+-  }
+-  result.sameSite = result.sameSite.slice(0, 100);
+-  result.external = result.external.slice(0, 100);
+-  return result;
+-}
+-__name(readBrowserLinks, "readBrowserLinks");
++
++    return lines
++        .join(' ')
++        .replace(/[ \t]+\n/g, '\n')
++        .replace(/\n[ \t]+/g, '\n')
++        .replace(/[ \t]{2,}/g, ' ')
++        .replace(/\n{3,}/g, '\n\n')
++        .trim()`
++);
++var readBrowserHtml = new Function(
++  "selector",
++  String.raw`return selector
++        ? (document.querySelector(selector)?.outerHTML ?? '')
++        : document.documentElement.outerHTML`
++);
++var readBrowserLinks = new Function(
++  String.raw`const current = new URL(location.href)
++    const host = current.hostname
++    const result = {
++        sameSite: [],
++        external: []
++    }
++    for (const a of Array.from(document.querySelectorAll('a[href]'))) {
++        const text = a.textContent?.replace(/\s+/g, ' ').trim()
++        if (!text) continue
++        const url = new URL(a.getAttribute('href'), current.href)
++        if (
++            url.hash &&
++            url.origin === current.origin &&
++            url.pathname === current.pathname &&
++            url.search === current.search
++        ) {
++            continue
++        }
++        const item = { text, url: url.href }
++        if (url.hostname === host) result.sameSite.push(item)
++        else result.external.push(item)
++    }
++    result.sameSite = result.sameSite.slice(0, 100)
++    result.external = result.external.slice(0, 100)
++    return result`
++);
+ 
+ // src/tools/browser/tools.ts
+ import { mkdir as mkdir2, writeFile as writeFile2 } from "fs/promises";
+@@ -2397,9 +2467,8 @@ var BrowserWaitForTool = class extends StructuredTool {
+   async _call(input, _, cfg) {
+     const page = this.manager.getPage(cfg, input.pageId);
+     await page.page.waitForFunction(
+-      (text) => document.body?.innerText?.includes(text),
+-      { timeout: input.timeout ?? this.manager.config.browserTimeout },
+-      input.text
++      `document.body?.innerText?.includes(${JSON.stringify(input.text)})`,
++      { timeout: input.timeout ?? this.manager.config.browserTimeout }
+     );
+     return `Text found: ${input.text}`;
+   }
+@@ -2657,10 +2726,12 @@ var BrowserEvaluateTool = class extends StructuredTool {
+         handles.push(await this.manager.getElement(page, uid));
+       }
+       const result = await page.page.evaluate(
+-        async (fnText, ...args) => {
+-          const fn = new Function(`return (${fnText})`)();
+-          return await fn(...args);
+-        },
++        // eslint-disable-next-line no-new-func
++        new Function(
++          "fnText",
++          "...args",
++          "const fn = new Function('return (' + fnText + ')')()\nreturn fn(...args)"
++        ),
+         input.function,
+         ...handles
+       );
+@@ -2738,27 +2809,35 @@ __name(actionResult, "actionResult");
+ async function fillElement(manager, page, uid, value) {
+   const el = await manager.getElement(page, uid);
+   try {
+-    await el.evaluate((node, value2) => {
+-      if (node instanceof HTMLInputElement) {
+-        if (node.type === "checkbox" || node.type === "radio") {
+-          node.checked = value2 === "true";
+-        } else {
+-          node.value = value2;
+-        }
+-        node.dispatchEvent(new Event("input", { bubbles: true }));
+-        node.dispatchEvent(new Event("change", { bubbles: true }));
+-        return;
+-      }
+-      if (node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement) {
+-        node.value = value2;
+-        node.dispatchEvent(new Event("input", { bubbles: true }));
+-        node.dispatchEvent(new Event("change", { bubbles: true }));
+-        return;
+-      }
+-      ;
+-      node.innerText = value2;
+-      node.dispatchEvent(new Event("input", { bubbles: true }));
+-    }, value);
++    await el.evaluate(
++      // eslint-disable-next-line no-new-func
++      new Function(
++        "node",
++        "value",
++        `if (node instanceof HTMLInputElement) {
++                    if (node.type === 'checkbox' || node.type === 'radio') {
++                        node.checked = value === 'true'
++                    } else {
++                        node.value = value
++                    }
++                    node.dispatchEvent(new Event('input', { bubbles: true }))
++                    node.dispatchEvent(new Event('change', { bubbles: true }))
++                    return
++                }
++                if (
++                    node instanceof HTMLTextAreaElement ||
++                    node instanceof HTMLSelectElement
++                ) {
++                    node.value = value
++                    node.dispatchEvent(new Event('input', { bubbles: true }))
++                    node.dispatchEvent(new Event('change', { bubbles: true }))
++                    return
++                }
++                node.innerText = value
++                node.dispatchEvent(new Event('input', { bubbles: true }))`
++      ),
++      value
++    );
+   } finally {
+     await el.dispose();
+   }
+@@ -2778,9 +2857,16 @@ function apply10(ctx, config) {
+       false
+     );
+     const searchManager = new SearchManager(ctx, config);
+-    const browserManager = new BrowserManager(ctx, config);
++    if (config.enableBrowser && !ctx.puppeteer) {
++      logger.warn(
++        "Browser tools are disabled because puppeteer is not available."
++      );
++    }
++    const browserManager = config.enableBrowser && ctx.puppeteer ? new BrowserManager(ctx, config) : void 0;
+     const summaryModel = computed(() => keywordExtractModel?.value);
+-    registerBrowserTools(plugin, browserManager, summaryModel);
++    if (browserManager) {
++      registerBrowserTools(plugin, browserManager, summaryModel);
++    }
+     if (config.searchEngine.length > 0) {
+       await providerPlugin(ctx, config, plugin, searchManager);
+       plugin.registerTool("web_search", {
+@@ -2824,7 +2910,7 @@ function apply10(ctx, config) {
+         (params) => {
+           const tools = getTools(
+             ctx.chatluna.platform,
+-            (name2) => name2 === "web_search" || name2.startsWith("browser_")
++            (name2) => name2 === "web_search" || config.enableBrowser && name2.startsWith("browser_")
+           );
+           const summaryModel2 = computed(
+             () => keywordExtractModel?.value ?? params.model
+@@ -2842,6 +2928,7 @@ function apply10(ctx, config) {
+             newQuestionPrompt: config.newQuestionPrompt,
+             contextualCompressionPrompt: config.contextualCompression ? config.contextualCompressionPrompt : void 0,
+             searchFailedPrompt: config.searchFailedPrompt,
++            replySafetyCheckFails: config.replySafetyCheckFails,
+             variableService: ctx.chatluna.promptRenderer,
+             contextManager: ctx.chatluna.contextManager,
+             browserManager
+@@ -2879,8 +2966,8 @@ async function createModel(ctx, model) {
+ }
+ __name(createModel, "createModel");
+ var inject = {
+-  required: ["chatluna", "puppeteer"],
+-  optional: ["chatluna_agent"]
++  required: ["chatluna"],
++  optional: ["puppeteer", "chatluna_agent"]
+ };
+ var name = "chatluna-search-service";
+ export {

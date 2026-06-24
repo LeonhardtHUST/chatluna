@@ -1,0 +1,244 @@
+diff --git a/lib/chain/browsing_chain.d.ts b/lib/chain/browsing_chain.d.ts
+index 40fe8c1e5ae78cae4fdb1177c1b6f5f60eaafa2a..4354cf2f51c9e03f75835db824daec91bd73d1c8 100644
+--- a/lib/chain/browsing_chain.d.ts
++++ b/lib/chain/browsing_chain.d.ts
+@@ -62,6 +62,7 @@ export declare class ChatLunaBrowsingChain extends ChatLunaLLMChainWrapper imple
+     private _selectTool;
+     private _findBlockHit;
+     call({ message, stream, events, conversationId, session, variables, maxToken, signal, toolMask }: ChatLunaLLMCallArg): Promise<ChainValues>;
++    private _answer;
+     private _search;
+     private _searchQuestions;
+     private _browseUrls;
+diff --git a/lib/index.cjs b/lib/index.cjs
+index 75ebbce72a91dab5be089099c7b17c965246d167..b159c1c6e469f37182ed7ef2b5db7e0102e2beb6 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -375,7 +375,11 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+     });
+     requests["variables_hide"] = requests["variables"];
+     const input = (0, import_string.getMessageContent)(message.content);
+-    const hit = this._findBlockHit(input);
++    const clean = extractQuestion(input, this.botName);
++    const date = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
++    logger?.debug(`[search-service] raw question: ${input}`);
++    logger?.debug(`[search-service] clean question: ${clean}`);
++    const hit = this._findBlockHit(clean);
+     if (hit) {
+       logger?.debug(`blocked response: keyword ${hit}`);
+       return {
+@@ -384,14 +388,35 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         )
+       };
+     }
++    const fixedAction = fixedSearchAction(clean, date);
++    if (fixedAction != null) {
++      logger?.debug(`action: ${JSON.stringify(fixedAction)}`);
++      await this._search(
++        fixedAction,
++        message,
++        chatHistory,
++        session,
++        events,
++        conversationId,
++        signal
++      );
++      return await this._answer(
++        requests,
++        stream,
++        signal,
++        session,
++        maxToken,
++        events
++      );
++    }
+     const newQuestion = (await (0, import_base.callChatLunaChain)(
+       this.formatQuestionChain,
+       {
+         chat_history: JSON.stringify(
+           formatChatHistoryAsString(chatHistory.slice(-6))
+         ),
+-        time: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+-        question: JSON.stringify(input),
++        time: date,
++        question: JSON.stringify(clean),
+         safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
+         temperature: 0,
+         signal
+@@ -432,6 +457,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         signal
+       );
+     }
++    return await this._answer(
++      requests,
++      stream,
++      signal,
++      session,
++      maxToken,
++      events
++    );
++  }
++  async _answer(requests, stream, signal, session, maxToken, events) {
+     const finalResponse = await (0, import_base.callChatLunaChain)(
+       this.chain,
+       {
+@@ -602,6 +637,43 @@ function formatSearchResults(results) {
+   ).join("\n\n");
+ }
+ __name(formatSearchResults, "formatSearchResults");
++function extractQuestion(input, botName) {
++  const raw = input.match(/Raw User Input:\s*([\s\S]*)$/)?.[1] ?? input;
++  const text = raw.trim().replace(/^@\S+\s*/, "");
++  const name2 = [botName, "Leo", "Leonbot"].find(
++    (item) => item.length > 0 && text.toLocaleLowerCase().startsWith(item.toLocaleLowerCase())
++  );
++  if (name2 == null) return text;
++  return text.slice(name2.length).replace(/^\s*[:,，：]?\s*/, "").trim();
++}
++__name(extractQuestion, "extractQuestion");
++function fixedSearchAction(input, date) {
++  const urls = input.match(/https?:\/\/\S+/gi)?.map((url) => url.replace(/[),，。；;]+$/, "")).slice(0, 3);
++  if (urls != null && urls.length > 0) {
++    return {
++      thought: "current input contains url",
++      safety: "allow",
++      action: "url",
++      content: urls
++    };
++  }
++  if (/搜索|查询|查找|查一下|上网|联网|浏览|看一下|帮我看|帮我找|找资料|核实|验证|是否属实|是真的吗|来源|出处|原文|官网|公告|通知|新闻|动态|进展|近况|最新|最近|当前|现在|今天|本周|本月|今年|刚发布|刚更新/.test(
++    input
++  )) {
++    return {
++      thought: "current input matches search trigger",
++      safety: "allow",
++      action: "search",
++      content: [
++        `${input} ${date}`,
++        `${input} 官网 公告 新闻 ${date}`,
++        `${input} 来源 原文 ${date}`
++      ]
++    };
++  }
++  return null;
++}
++__name(fixedSearchAction, "fixedSearchAction");
+ function raceAbort(promise, signal) {
+   if (signal?.aborted) {
+     return Promise.reject(new import_error.ChatLunaError(import_error.ChatLunaErrorCode.ABORTED));
+diff --git a/lib/index.mjs b/lib/index.mjs
+index b4b7c05eb10ea2b5cdc93df9929364e7d4dde587..e32bdcda62817baef011a552212cc46f831cbfbf 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -350,7 +350,11 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+     });
+     requests["variables_hide"] = requests["variables"];
+     const input = getMessageContent(message.content);
+-    const hit = this._findBlockHit(input);
++    const clean = extractQuestion(input, this.botName);
++    const date = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
++    logger?.debug(`[search-service] raw question: ${input}`);
++    logger?.debug(`[search-service] clean question: ${clean}`);
++    const hit = this._findBlockHit(clean);
+     if (hit) {
+       logger?.debug(`blocked response: keyword ${hit}`);
+       return {
+@@ -359,14 +363,35 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         )
+       };
+     }
++    const fixedAction = fixedSearchAction(clean, date);
++    if (fixedAction != null) {
++      logger?.debug(`action: ${JSON.stringify(fixedAction)}`);
++      await this._search(
++        fixedAction,
++        message,
++        chatHistory,
++        session,
++        events,
++        conversationId,
++        signal
++      );
++      return await this._answer(
++        requests,
++        stream,
++        signal,
++        session,
++        maxToken,
++        events
++      );
++    }
+     const newQuestion = (await callChatLunaChain(
+       this.formatQuestionChain,
+       {
+         chat_history: JSON.stringify(
+           formatChatHistoryAsString(chatHistory.slice(-6))
+         ),
+-        time: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+-        question: JSON.stringify(input),
++        time: date,
++        question: JSON.stringify(clean),
+         safetyBlockKeywords: this.safetyBlockKeywords.join("\n"),
+         temperature: 0,
+         signal
+@@ -407,6 +432,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         signal
+       );
+     }
++    return await this._answer(
++      requests,
++      stream,
++      signal,
++      session,
++      maxToken,
++      events
++    );
++  }
++  async _answer(requests, stream, signal, session, maxToken, events) {
+     const finalResponse = await callChatLunaChain(
+       this.chain,
+       {
+@@ -577,6 +612,43 @@ function formatSearchResults(results) {
+   ).join("\n\n");
+ }
+ __name(formatSearchResults, "formatSearchResults");
++function extractQuestion(input, botName) {
++  const raw = input.match(/Raw User Input:\s*([\s\S]*)$/)?.[1] ?? input;
++  const text = raw.trim().replace(/^@\S+\s*/, "");
++  const name2 = [botName, "Leo", "Leonbot"].find(
++    (item) => item.length > 0 && text.toLocaleLowerCase().startsWith(item.toLocaleLowerCase())
++  );
++  if (name2 == null) return text;
++  return text.slice(name2.length).replace(/^\s*[:,，：]?\s*/, "").trim();
++}
++__name(extractQuestion, "extractQuestion");
++function fixedSearchAction(input, date) {
++  const urls = input.match(/https?:\/\/\S+/gi)?.map((url) => url.replace(/[),，。；;]+$/, "")).slice(0, 3);
++  if (urls != null && urls.length > 0) {
++    return {
++      thought: "current input contains url",
++      safety: "allow",
++      action: "url",
++      content: urls
++    };
++  }
++  if (/搜索|查询|查找|查一下|上网|联网|浏览|看一下|帮我看|帮我找|找资料|核实|验证|是否属实|是真的吗|来源|出处|原文|官网|公告|通知|新闻|动态|进展|近况|最新|最近|当前|现在|今天|本周|本月|今年|刚发布|刚更新/.test(
++    input
++  )) {
++    return {
++      thought: "current input matches search trigger",
++      safety: "allow",
++      action: "search",
++      content: [
++        `${input} ${date}`,
++        `${input} 官网 公告 新闻 ${date}`,
++        `${input} 来源 原文 ${date}`
++      ]
++    };
++  }
++  return null;
++}
++__name(fixedSearchAction, "fixedSearchAction");
+ function raceAbort(promise, signal) {
+   if (signal?.aborted) {
+     return Promise.reject(new ChatLunaError(ChatLunaErrorCode.ABORTED));

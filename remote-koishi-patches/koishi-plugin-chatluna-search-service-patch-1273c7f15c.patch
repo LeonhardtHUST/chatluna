@@ -1,0 +1,24 @@
+diff --git a/lib/index.cjs b/lib/index.cjs
+index bb4e41e4f4ed3dadaf94f0b7720db43d9bb41469..f349ac3d0c3dc1ee22f41f6841111df6cde303b8 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -2966,6 +2966,7 @@ __name(fillElement, "fillElement");
+ var logger;
+ function apply10(ctx, config) {
+   logger = (0, import_logger.createLogger)(ctx, "chatluna-search-service");
++  config.safetyBlockKeywords = config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS;
+   ctx.on("ready", async () => {
+     const keywordExtractModel = config.summaryModel && config.summaryModel !== "empty" ? await createModel(ctx, config.summaryModel) : null;
+     const plugin = new import_chat2.ChatLunaPlugin(
+diff --git a/lib/index.mjs b/lib/index.mjs
+index 1d88122e1c415756cc5027683c2b6b90f616ebe5..e3194b314af60c598e0b815e6be685a2e12fc279 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -2941,6 +2941,7 @@ __name(fillElement, "fillElement");
+ var logger;
+ function apply10(ctx, config) {
+   logger = createLogger(ctx, "chatluna-search-service");
++  config.safetyBlockKeywords = config.safetyBlockKeywords ?? DEFAULT_SAFETY_BLOCK_KEYWORDS;
+   ctx.on("ready", async () => {
+     const keywordExtractModel = config.summaryModel && config.summaryModel !== "empty" ? await createModel(ctx, config.summaryModel) : null;
+     const plugin = new ChatLunaPlugin2(

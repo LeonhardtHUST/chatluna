@@ -1,0 +1,134 @@
+diff --git a/lib/index.cjs b/lib/index.cjs
+index 6bc05bb30bfd793683e3e0366770f4a059451adc..d1b438c79cee358aec7e828857d438761b193fac 100644
+--- a/lib/index.cjs
++++ b/lib/index.cjs
+@@ -482,31 +482,6 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         )
+       };
+     }
+-    const fixedAction = precheck.safety === "allow" ? fixedSearchAction(
+-      clean,
+-      date,
+-      this.searchTriggerKeywords
+-    ) : null;
+-    if (fixedAction != null) {
+-      logger?.debug(`action: ${JSON.stringify(fixedAction)}`);
+-      await this._search(
+-        fixedAction,
+-        message,
+-        chatHistory,
+-        session,
+-        events,
+-        conversationId,
+-        signal
+-      );
+-      return await this._answer(
+-        requests,
+-        stream,
+-        signal,
+-        session,
+-        maxToken,
+-        events
+-      );
+-    }
+     const newQuestion = (await (0, import_base.callChatLunaChain)(
+       this.formatQuestionChain,
+       {
+@@ -544,8 +519,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         )
+       };
+     }
+-    if (Array.isArray(searchAction?.content)) {
+-      const queryHit = searchAction.content.map(
++    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedSearchAction(
++      clean,
++      date,
++      this.searchTriggerKeywords
++    ) ?? searchAction : searchAction;
++    if (action !== searchAction) {
++      logger?.debug(`fixed action: ${JSON.stringify(action)}`);
++    }
++    if (Array.isArray(action?.content)) {
++      const queryHit = action.content.map(
+         (item) => this._findKeywordHit(item, this.safetyBlockKeywordGroups)
+       ).find((hit) => hit != null);
+       if (queryHit) {
+@@ -559,9 +542,9 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends import_base.Cha
+         };
+       }
+     }
+-    if (searchAction != null && searchAction.action !== "skip") {
++    if (action != null && action.action !== "skip") {
+       await this._search(
+-        searchAction,
++        action,
+         message,
+         chatHistory,
+         session,
+diff --git a/lib/index.mjs b/lib/index.mjs
+index d722989e558573bb4abc53173cafd779ef9035c6..36fc53a317e361a4792fabb5a64a8095575c01bb 100644
+--- a/lib/index.mjs
++++ b/lib/index.mjs
+@@ -457,31 +457,6 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         )
+       };
+     }
+-    const fixedAction = precheck.safety === "allow" ? fixedSearchAction(
+-      clean,
+-      date,
+-      this.searchTriggerKeywords
+-    ) : null;
+-    if (fixedAction != null) {
+-      logger?.debug(`action: ${JSON.stringify(fixedAction)}`);
+-      await this._search(
+-        fixedAction,
+-        message,
+-        chatHistory,
+-        session,
+-        events,
+-        conversationId,
+-        signal
+-      );
+-      return await this._answer(
+-        requests,
+-        stream,
+-        signal,
+-        session,
+-        maxToken,
+-        events
+-      );
+-    }
+     const newQuestion = (await callChatLunaChain(
+       this.formatQuestionChain,
+       {
+@@ -519,8 +494,16 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         )
+       };
+     }
+-    if (Array.isArray(searchAction?.content)) {
+-      const queryHit = searchAction.content.map(
++    const action = searchAction.action === "skip" && precheck.safety === "allow" ? fixedSearchAction(
++      clean,
++      date,
++      this.searchTriggerKeywords
++    ) ?? searchAction : searchAction;
++    if (action !== searchAction) {
++      logger?.debug(`fixed action: ${JSON.stringify(action)}`);
++    }
++    if (Array.isArray(action?.content)) {
++      const queryHit = action.content.map(
+         (item) => this._findKeywordHit(item, this.safetyBlockKeywordGroups)
+       ).find((hit) => hit != null);
+       if (queryHit) {
+@@ -534,9 +517,9 @@ var ChatLunaBrowsingChain = class _ChatLunaBrowsingChain extends ChatLunaLLMChai
+         };
+       }
+     }
+-    if (searchAction != null && searchAction.action !== "skip") {
++    if (action != null && action.action !== "skip") {
+       await this._search(
+-        searchAction,
++        action,
+         message,
+         chatHistory,
+         session,
