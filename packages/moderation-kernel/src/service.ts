@@ -1,6 +1,7 @@
 import { Context, Service } from 'koishi'
 import type { ModerationConfig } from './config'
 import { DEFAULT_ALLOW_DECISION } from './constants'
+import { logModerationEvent } from './audit/logger'
 import { evaluateLocalRules } from './policy/engine'
 import { DEFAULT_KEYWORD_RULES, keywordGroupRules } from './policy/rules'
 import { applyAdminCommands } from './admin/commands'
@@ -45,7 +46,7 @@ export class ModerationService extends Service {
     public readonly repository: ModerationRepository
 
     constructor(
-        ctx: Context,
+        public readonly ctx: Context,
         public readonly config: ModerationConfig
     ) {
         super(ctx, 'moderation')
@@ -75,13 +76,42 @@ export class ModerationService extends Service {
                   ])
                 : DEFAULT_ALLOW_DECISION
         )
-        const event = await this.repository.recordEvent(req, decision)
+        logModerationEvent(this.ctx, 'moderation.decision', req, decision, {
+            shadowMode: this.config.shadowMode
+        })
+
+        const event = await this.recordEvent(req, decision)
         const result = normalizeDecision({
             ...decision,
             eventId: event.id
         })
 
+        if (result.action === 'review') {
+            logModerationEvent(this.ctx, 'moderation.review', req, result, {
+                eventId: event.id,
+                shadowMode: this.config.shadowMode
+            })
+        }
+
+        if (isBlockingDecision(result)) {
+            logModerationEvent(this.ctx, 'moderation.block', req, result, {
+                eventId: event.id,
+                shadowMode: this.config.shadowMode
+            })
+        }
+
         if (this.config.shadowMode && isBlockingDecision(result)) {
+            logModerationEvent(
+                this.ctx,
+                'moderation.shadow_mismatch',
+                req,
+                result,
+                {
+                    eventId: event.id,
+                    shadowMode: this.config.shadowMode
+                }
+            )
+
             return normalizeDecision({
                 ...result,
                 action: 'allow'
@@ -175,19 +205,116 @@ export class ModerationService extends Service {
         operator: string
     ): Promise<void> {
         await this.repository.updateUserState(userKey, patch)
+        logModerationEvent(
+            this.ctx,
+            'moderation.override',
+            {
+                stage: 'appeal-replay',
+                userKey
+            },
+            {
+                action: 'review',
+                labels: ['admin_override'],
+                confidence: 1,
+                severity: 0,
+                riskScore: patch.trustScore ?? 0
+            },
+            {
+                shadowMode: this.config.shadowMode
+            }
+        )
     }
 
-    recordOverride(
+    async recordOverride(
         eventId: string,
         action: ModerationAction,
         operator: string,
         reason?: string
     ) {
-        return this.repository.recordOverride(eventId, action, operator, reason)
+        const review = await this.repository.recordOverride(
+            eventId,
+            action,
+            operator,
+            reason
+        )
+        logModerationEvent(
+            this.ctx,
+            'moderation.override',
+            {
+                stage: 'appeal-replay',
+                userKey: review.userId
+            },
+            {
+                action,
+                labels: ['manual_override'],
+                confidence: 1,
+                severity: 0,
+                riskScore: 0
+            },
+            {
+                eventId,
+                shadowMode: this.config.shadowMode
+            }
+        )
+
+        return review
     }
 
-    purgeExpiredEvidence(now: Date = new Date()): Promise<number> {
-        return this.repository.purgeExpiredEvidence(now)
+    async purgeExpiredEvidence(now: Date = new Date()): Promise<number> {
+        const count = await this.repository.purgeExpiredEvidence(now)
+        logModerationEvent(
+            this.ctx,
+            'moderation.retention_purge',
+            {
+                stage: 'appeal-replay',
+                userKey: 'system'
+            },
+            {
+                action: 'allow',
+                labels: [],
+                confidence: 1,
+                severity: 0,
+                riskScore: 0
+            },
+            {
+                count,
+                shadowMode: this.config.shadowMode
+            }
+        )
+
+        return count
+    }
+
+    private async recordEvent(
+        req: ModerationRequest,
+        decision: ModerationDecision
+    ) {
+        try {
+            const event = await this.repository.recordEvent(req, decision)
+            logModerationEvent(
+                this.ctx,
+                'moderation.event_recorded',
+                req,
+                decision,
+                {
+                    eventId: event.id,
+                    shadowMode: this.config.shadowMode
+                }
+            )
+
+            return event
+        } catch (error) {
+            logModerationEvent(
+                this.ctx,
+                'moderation.storage_failure',
+                req,
+                decision,
+                {
+                    shadowMode: this.config.shadowMode
+                }
+            )
+            throw error
+        }
     }
 }
 

@@ -20,3 +20,14 @@ export const DEFAULT_REVIEW_DECISION: ModerationDecision = {
     severity: 1,
     riskScore: 25
 }
+
+export const MODERATION_LOG_EVENTS = [
+    'moderation.decision',
+    'moderation.event_recorded',
+    'moderation.shadow_mismatch',
+    'moderation.block',
+    'moderation.review',
+    'moderation.storage_failure',
+    'moderation.retention_purge',
+    'moderation.override'
+] as const
