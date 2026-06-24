@@ -5,10 +5,12 @@ import { decision } from './storage.spec'
 
 describe('moderation admin commands', () => {
     it('formats cases without raw evidence by default', async () => {
+        const now = new Date('2026-06-24T00:00:00.000Z')
         const { app, service } = await createService(
             cfg({
                 storage: {
-                    storeRawTextForAppeal: true
+                    storeRawTextForAppeal: true,
+                    rawTextRetentionDays: 7
                 }
             })
         )
@@ -18,11 +20,81 @@ describe('moderation admin commands', () => {
                 userKey: 'user-1',
                 contentText: 'private raw evidence'
             },
-            decision
+            decision,
+            { now }
         )
 
         assert.notInclude(formatEventCase(event), 'private raw evidence')
-        assert.include(formatEventCase(event, true), 'private raw evidence')
+        await app.stop()
+    })
+
+    it('formats raw evidence only with explicit raw option', async () => {
+        const now = new Date('2026-06-24T00:00:00.000Z')
+        const { app, service } = await createService(
+            cfg({
+                storage: {
+                    storeRawTextForAppeal: true,
+                    rawTextRetentionDays: 7
+                }
+            })
+        )
+        const event = await service.repository.recordEvent(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: 'private raw evidence'
+            },
+            decision,
+            { now }
+        )
+
+        assert.include(
+            formatEventCase(event, {
+                raw: true,
+                storeRawTextForAppeal: true,
+                now
+            }),
+            'private raw evidence'
+        )
+        await app.stop()
+    })
+
+    it('hides raw evidence when raw option is unavailable or expired', async () => {
+        const now = new Date('2026-06-24T00:00:00.000Z')
+        const { app, service } = await createService(
+            cfg({
+                storage: {
+                    storeRawTextForAppeal: true,
+                    rawTextRetentionDays: 1
+                }
+            })
+        )
+        const event = await service.repository.recordEvent(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: 'private raw evidence'
+            },
+            decision,
+            { now }
+        )
+
+        assert.notInclude(
+            formatEventCase(event, {
+                raw: true,
+                storeRawTextForAppeal: false,
+                now
+            }),
+            'private raw evidence'
+        )
+        assert.notInclude(
+            formatEventCase(event, {
+                raw: true,
+                storeRawTextForAppeal: true,
+                now: new Date('2026-06-25T00:00:00.000Z')
+            }),
+            'private raw evidence'
+        )
         await app.stop()
     })
 

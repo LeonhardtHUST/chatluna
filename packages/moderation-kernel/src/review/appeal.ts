@@ -1,19 +1,30 @@
 import type { ModerationEventRow } from '../storage/model'
 
+interface EventCaseOptions {
+    raw?: boolean
+    storeRawTextForAppeal?: boolean
+    now?: Date
+}
+
 export function formatEventCase(
     event: ModerationEventRow | undefined,
-    showRaw: boolean = false
+    opts: EventCaseOptions = {}
 ) {
     if (!event) {
         return 'Moderation case not found.'
     }
 
-    const raw =
-        showRaw && event.rawText != null
-            ? `\nrawText: ${event.rawText}`
-            : event.rawText == null
-              ? '\nrawText: [hidden or expired]'
-              : '\nrawText: [hidden]'
+    const now = opts.now ?? new Date()
+    const showRaw =
+        opts.raw === true &&
+        opts.storeRawTextForAppeal === true &&
+        event.rawText != null &&
+        (event.expireAt == null || event.expireAt.getTime() > now.getTime())
+    const raw = showRaw
+        ? `\nrawText: ${event.rawText}`
+        : event.rawText == null
+          ? '\nrawText: [hidden or expired]'
+          : '\nrawText: [hidden]'
 
     return [
         `eventId: ${event.id}`,

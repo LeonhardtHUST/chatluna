@@ -16,6 +16,10 @@ interface UserOptions {
     restore?: boolean
 }
 
+interface CaseOptions {
+    raw?: boolean
+}
+
 function operator(session?: Session) {
     return session?.userId ?? 'admin'
 }
@@ -89,13 +93,16 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
 
     ctx.command('moderation.case <eventId:string>', 'Show moderation case', {
         authority: 3
-    }).action(async (_argv, eventId) => {
-        const event = await service.repository.getEvent(eventId)
-        return formatEventCase(
-            event,
-            service.config.storage.storeRawTextForAppeal
-        )
     })
+        .option('raw', '--raw')
+        .action(async ({ options }, eventId) => {
+            const event = await service.repository.getEvent(eventId)
+            return formatEventCase(event, {
+                raw: (options as CaseOptions).raw === true,
+                storeRawTextForAppeal:
+                    service.config.storage.storeRawTextForAppeal
+            })
+        })
 
     ctx.command(
         'moderation.user <user:string>',
