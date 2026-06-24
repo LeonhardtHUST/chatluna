@@ -2,6 +2,7 @@ import { Context, Service } from 'koishi'
 import type { ModerationConfig } from './config'
 import { DEFAULT_ALLOW_DECISION } from './constants'
 import { evaluateLocalRules } from './policy/engine'
+import { applyAdminCommands } from './admin/commands'
 import { defineModerationModels } from './storage/model'
 import { ModerationRepository } from './storage/repository'
 import type {
@@ -49,6 +50,7 @@ export class ModerationService extends Service {
         super(ctx, 'moderation')
         defineModerationModels(ctx)
         this.repository = new ModerationRepository(ctx, config)
+        applyAdminCommands(ctx, this)
     }
 
     async evaluate(req: ModerationRequest): Promise<ModerationDecision> {
