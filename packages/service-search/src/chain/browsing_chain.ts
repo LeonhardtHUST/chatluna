@@ -44,6 +44,7 @@ import { BrowserManager } from '../tools/browser/manager'
 
 export interface ChatLunaBrowsingChainInput {
     botName: string
+    botNames: string[]
     preset: ComputedRef<PresetTemplate>
     embeddings: Embeddings
 
@@ -59,7 +60,10 @@ export interface ChatLunaBrowsingChainInput {
     contextualCompressionPrompt?: string
     searchFailedPrompt: string
     replySafetyCheckFails?: string
-    safetyBlockKeywords: string[]
+    safetyBlockKeywordGroups: SafetyKeywordGroup[]
+    safetyRecheckKeywordGroups: SafetyKeywordGroup[]
+    promptAttackWarning: string
+    searchTriggerKeywords: string[]
     variableService: ChatLunaPromptRenderService
     browserManager?: BrowserManager
 }
@@ -69,6 +73,8 @@ export class ChatLunaBrowsingChain
     implements ChatLunaBrowsingChainInput
 {
     botName: string
+
+    botNames: string[]
 
     embeddings: Embeddings
 
@@ -106,12 +112,19 @@ export class ChatLunaBrowsingChain
 
     replySafetyCheckFails?: string
 
-    safetyBlockKeywords: string[]
+    safetyBlockKeywordGroups: SafetyKeywordGroup[]
+
+    safetyRecheckKeywordGroups: SafetyKeywordGroup[]
+
+    promptAttackWarning: string
+
+    searchTriggerKeywords: string[]
 
     private _toolMask?: ToolMask
 
     constructor({
         botName,
+        botNames,
         embeddings,
         historyMemory,
         chain,
@@ -129,7 +142,10 @@ export class ChatLunaBrowsingChain
         contextualCompressionPrompt,
         contextualCompressionChain,
         replySafetyCheckFails,
-        safetyBlockKeywords
+        safetyBlockKeywordGroups,
+        safetyRecheckKeywordGroups,
+        promptAttackWarning,
+        searchTriggerKeywords
     }: ChatLunaBrowsingChainInput & {
         chain: ChatLunaLLMChain
         formatQuestionChain: ChatLunaLLMChain
@@ -139,6 +155,7 @@ export class ChatLunaBrowsingChain
     }) {
         super()
         this.botName = botName
+        this.botNames = botNames
         this.preset = preset
 
         this.embeddings = embeddings
@@ -151,7 +168,10 @@ export class ChatLunaBrowsingChain
         this.searchFailedPrompt = searchFailedPrompt
         this.newQuestionPrompt = newQuestionPrompt
         this.replySafetyCheckFails = replySafetyCheckFails
-        this.safetyBlockKeywords = safetyBlockKeywords
+        this.safetyBlockKeywordGroups = safetyBlockKeywordGroups
+        this.safetyRecheckKeywordGroups = safetyRecheckKeywordGroups
+        this.promptAttackWarning = promptAttackWarning
+        this.searchTriggerKeywords = searchTriggerKeywords
         this.variableService = variableService
         this.browserManager = browserManager
         this.searchPrompt = searchPrompt
@@ -170,6 +190,7 @@ export class ChatLunaBrowsingChain
         tools: ComputedRef<ChatLunaToolWrapper[]>,
         {
             botName,
+            botNames,
             embeddings,
             summaryModel,
             historyMemory,
@@ -180,7 +201,10 @@ export class ChatLunaBrowsingChain
             summaryType,
             searchFailedPrompt,
             replySafetyCheckFails,
-            safetyBlockKeywords,
+            safetyBlockKeywordGroups,
+            safetyRecheckKeywordGroups,
+            promptAttackWarning,
+            searchTriggerKeywords,
             variableService,
             contextManager,
             browserManager,
@@ -218,6 +242,7 @@ export class ChatLunaBrowsingChain
             variableService,
             browserManager,
             botName,
+            botNames,
             formatQuestionChain,
             embeddings,
             summaryModel,
@@ -226,7 +251,10 @@ export class ChatLunaBrowsingChain
             thoughtMessage,
             searchFailedPrompt,
             replySafetyCheckFails,
-            safetyBlockKeywords,
+            safetyBlockKeywordGroups,
+            safetyRecheckKeywordGroups,
+            promptAttackWarning,
+            searchTriggerKeywords,
             searchPrompt,
             newQuestionPrompt,
             chain,
@@ -253,14 +281,82 @@ export class ChatLunaBrowsingChain
         }) as T
     }
 
-    private _findBlockHit(input: string) {
-        return this.safetyBlockKeywords.find((keyword) => {
-            const word = keyword.trim()
-            return (
-                word.length > 0 &&
-                input.toLocaleLowerCase().includes(word.toLocaleLowerCase())
+    private _findKeywordHit(input: string, groups: SafetyKeywordGroup[]) {
+        const lower = input.toLocaleLowerCase()
+
+        for (const group of groups) {
+            const keyword = group.keywords.find((word) =>
+                lower.includes(word.toLocaleLowerCase())
             )
-        })
+
+            if (keyword != null) {
+                return {
+                    category: group.name,
+                    keyword
+                }
+            }
+        }
+    }
+
+    private _precheck(input: string): SafetyPrecheck {
+        if (
+            /忽略.*(指令|提示词|规则)|绕过.*(指令|提示词|规则|安全|审查)|隐藏(规则|提示词|指令)|泄露.*(提示词|规则|指令)|越狱|jailbreak|ignore.*(instruction|system|developer)|system prompt|developer message|hidden prompt/i.test(
+                input
+            )
+        ) {
+            return {
+                safety: 'block',
+                risk_level: 'high',
+                categories: ['prompt_attack'],
+                matched_rule: 'prompt_attack',
+                search_allowed: false,
+                url_allowed: false,
+                policy_hint:
+                    'Prompt attack detected before routing. Do not search or browse.'
+            }
+        }
+
+        const block = this._findKeywordHit(input, this.safetyBlockKeywordGroups)
+
+        if (block != null) {
+            return {
+                safety: 'block',
+                risk_level: 'high',
+                categories: [block.category],
+                matched_rule: block.keyword,
+                search_allowed: false,
+                url_allowed: false,
+                policy_hint:
+                    'Hard-blocked before routing. Do not search or browse.'
+            }
+        }
+
+        const recheck = this._findKeywordHit(
+            input,
+            this.safetyRecheckKeywordGroups
+        )
+
+        if (recheck != null) {
+            return {
+                safety: 'recheck',
+                risk_level: 'medium',
+                categories: [recheck.category],
+                matched_rule: recheck.keyword,
+                search_allowed: false,
+                url_allowed: false,
+                policy_hint:
+                    'Soft-review match. Allow only if the intent is clearly educational, scientific, defensive, compliant, or benign.'
+            }
+        }
+
+        return {
+            safety: 'allow',
+            risk_level: 'low',
+            categories: [],
+            search_allowed: true,
+            url_allowed: true,
+            policy_hint: 'No mechanical safety match.'
+        }
     }
 
     async call({
@@ -293,16 +389,23 @@ export class ChatLunaBrowsingChain
         requests['variables_hide'] = requests['variables']
 
         const input = getMessageContent(message.content)
-        const clean = extractQuestion(input, this.botName)
+        const question = extractQuestion(
+            input,
+            this.botNames,
+            this.promptAttackWarning
+        )
+        const clean = question.clean
         const date = new Date().toISOString().slice(0, 10)
+        const precheck = this._precheck(clean)
 
         logger?.debug(`[search-service] raw question: ${input}`)
         logger?.debug(`[search-service] clean question: ${clean}`)
+        logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
-        const hit = this._findBlockHit(clean)
-
-        if (hit) {
-            logger?.debug(`blocked response: keyword ${hit}`)
+        if (precheck.safety === 'block') {
+            logger?.debug(
+                `blocked response: ${precheck.categories.join(',')}`
+            )
             return {
                 message: new AIMessage(
                     this.replySafetyCheckFails?.length > 0
@@ -312,7 +415,14 @@ export class ChatLunaBrowsingChain
             }
         }
 
-        const fixedAction = fixedSearchAction(clean, date)
+        const fixedAction =
+            precheck.safety === 'allow'
+                ? fixedSearchAction(
+                      clean,
+                      date,
+                      this.searchTriggerKeywords
+                  )
+                : null
 
         if (fixedAction != null) {
             logger?.debug(`action: ${JSON.stringify(fixedAction)}`)
@@ -346,8 +456,18 @@ export class ChatLunaBrowsingChain
                         formatChatHistoryAsString(chatHistory.slice(-6))
                     ),
                     time: date,
-                    question: JSON.stringify(clean),
-                    safetyBlockKeywords: this.safetyBlockKeywords.join('\n'),
+                    question: question.payload,
+                    precheck: JSON.stringify({
+                        safety: precheck.safety,
+                        risk_level: precheck.risk_level,
+                        risk_categories: precheck.categories,
+                        search_allowed_by_default: precheck.search_allowed,
+                        url_allowed_by_default: precheck.url_allowed,
+                        policy_hint: precheck.policy_hint
+                    }),
+                    safetyBlockKeywords: this.safetyBlockKeywordGroups
+                        .map((group) => group.name)
+                        .join('\n'),
                     temperature: 0,
                     signal
                 },
@@ -363,8 +483,14 @@ export class ChatLunaBrowsingChain
 
         // safety check — block if LLM flagged the content
 
-        if (searchAction.safety === 'block') {
-            logger?.debug('blocked response: router safety block')
+        if (
+            searchAction.safety === 'block' ||
+            searchAction.safety === 'recheck' ||
+            (precheck.safety === 'recheck' && searchAction.safety !== 'allow')
+        ) {
+            logger?.debug(
+                `blocked response: router ${searchAction.safety ?? 'missing safety'}`
+            )
             return {
                 message: new AIMessage(
                     this.replySafetyCheckFails?.length > 0
@@ -376,11 +502,15 @@ export class ChatLunaBrowsingChain
 
         if (Array.isArray(searchAction?.content)) {
             const queryHit = searchAction.content
-                .map((item) => this._findBlockHit(item))
-                .find((keyword) => keyword != null)
+                .map((item) =>
+                    this._findKeywordHit(item, this.safetyBlockKeywordGroups)
+                )
+                .find((hit) => hit != null)
 
             if (queryHit) {
-                logger?.debug(`blocked response: search keyword ${queryHit}`)
+                logger?.debug(
+                    `blocked response: search keyword ${queryHit.keyword}`
+                )
                 return {
                     message: new AIMessage(
                         this.replySafetyCheckFails?.length > 0
@@ -669,6 +799,39 @@ interface SearchResultLike {
     url: string
 }
 
+interface SafetyKeywordGroup {
+    name: string
+    keywords: string[]
+}
+
+type SafetyPrecheck =
+    | {
+          safety: 'block'
+          risk_level: 'high'
+          categories: string[]
+          matched_rule: string
+          search_allowed: false
+          url_allowed: false
+          policy_hint: string
+      }
+    | {
+          safety: 'recheck'
+          risk_level: 'medium'
+          categories: string[]
+          matched_rule: string
+          search_allowed: false
+          url_allowed: false
+          policy_hint: string
+      }
+    | {
+          safety: 'allow'
+          risk_level: 'low'
+          categories: []
+          search_allowed: true
+          url_allowed: true
+          policy_hint: string
+      }
+
 function formatSearchResults(results: SearchResultLike[]) {
     return results
         .map((result) =>
@@ -679,21 +842,38 @@ function formatSearchResults(results: SearchResultLike[]) {
         .join('\n\n')
 }
 
-function extractQuestion(input: string, botName: string) {
+function extractQuestion(
+    input: string,
+    botNames: string[],
+    promptAttackWarning: string
+) {
     const raw = input.match(/Raw User Input:\s*([\s\S]*)$/)?.[1] ?? input
     const text = raw.trim().replace(/^@\S+\s*/, '')
-    const name = [botName, 'Leo', 'Leonbot'].find(
-        (item) =>
-            item.length > 0 &&
+    const name = botNames
+        .filter((item) => item.length > 0)
+        .filter((item) =>
             text.toLocaleLowerCase().startsWith(item.toLocaleLowerCase())
-    )
+        )
+        .sort((a, b) => b.length - a.length)[0]
+    const clean =
+        name == null
+            ? text
+            : text.slice(name.length).replace(/^\s*[:,，：]?\s*/, '').trim()
 
-    if (name == null) return text
-
-    return text.slice(name.length).replace(/^\s*[:,，：]?\s*/, '').trim()
+    return {
+        clean,
+        payload: JSON.stringify({
+            security_notice: promptAttackWarning,
+            user_message: clean
+        })
+    }
 }
 
-function fixedSearchAction(input: string, date: string): SearchAction | null {
+function fixedSearchAction(
+    input: string,
+    date: string,
+    searchTriggerKeywords: string[]
+): SearchAction | null {
     const urls = input
         .match(/https?:\/\/\S+/gi)
         ?.map((url) => url.replace(/[),，。；;]+$/, ''))
@@ -709,8 +889,8 @@ function fixedSearchAction(input: string, date: string): SearchAction | null {
     }
 
     if (
-        /搜索|查询|查找|查一下|上网|联网|浏览|看一下|帮我看|帮我找|找资料|核实|验证|是否属实|是真的吗|来源|出处|原文|官网|公告|通知|新闻|动态|进展|近况|最新|最近|当前|现在|今天|本周|本月|今年|刚发布|刚更新/.test(
-            input
+        searchTriggerKeywords.some((keyword) =>
+            input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
         )
     ) {
         return {

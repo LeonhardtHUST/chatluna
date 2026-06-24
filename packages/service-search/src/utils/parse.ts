@@ -103,18 +103,23 @@ export function parseSearchAction(content: string): SearchAction {
         }
     }
 
-    if (result.safety === 'block') {
+    if (result.safety === 'block' || result.safety === 'recheck') {
         return {
             action: 'skip',
-            safety: 'block',
+            safety: result.safety,
             thought: result.thought ?? 'blocked by safety policy',
-            content: []
+            content: [],
+            risk_level: result.risk_level,
+            risk_categories: Array.isArray(result.risk_categories)
+                ? result.risk_categories
+                : []
         }
     }
 
     if (
         result.safety != null &&
         result.safety !== 'allow' &&
+        result.safety !== 'recheck' &&
         result.safety !== 'block'
     ) {
         return {
@@ -143,7 +148,11 @@ export function parseSearchAction(content: string): SearchAction {
             action: 'skip',
             safety: 'allow',
             thought: result.thought ?? 'skip the search',
-            content: []
+            content: [],
+            risk_level: result.risk_level,
+            risk_categories: Array.isArray(result.risk_categories)
+                ? result.risk_categories
+                : []
         }
     }
 
@@ -170,7 +179,11 @@ export function parseSearchAction(content: string): SearchAction {
                   action: 'url',
                   safety: 'allow',
                   thought: result.thought ?? 'browse url',
-                  content: urls
+                  content: urls,
+                  risk_level: result.risk_level,
+                  risk_categories: Array.isArray(result.risk_categories)
+                      ? result.risk_categories
+                      : []
               }
             : {
                   action: 'skip',
@@ -185,7 +198,11 @@ export function parseSearchAction(content: string): SearchAction {
             action: 'search',
             safety: 'allow',
             thought: result.thought ?? 'search the web',
-            content: items
+            content: items,
+            risk_level: result.risk_level,
+            risk_categories: Array.isArray(result.risk_categories)
+                ? result.risk_categories
+                : []
         }
     }
 

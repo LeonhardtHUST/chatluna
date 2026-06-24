@@ -18,6 +18,9 @@ $inner:
       searchThreshold: 搜索内容的相似度阈值。
       replySafetyCheckFails: Fixed reply when safety blocking is triggered.
       safetyBlockKeywordGroups: 在生成搜索前触发阻断的硬拦截关键词分组。每组内使用半角逗号分隔关键词。
+      safetyRecheckKeywordGroups: 软复核关键词分组。命中后不会直接机械搜索，而是交给路由模型进行更保守的安全复核。
+      promptAttackWarning: 注入到搜索路由问题载荷中的安全边界提示，用于抵抗提示词注入。
+      searchTriggerKeywords: 机械搜索触发关键词。每个关键词之间使用半角逗号分隔。
       multiSourceMode:
           $desc: 多源模式。
           $inner:

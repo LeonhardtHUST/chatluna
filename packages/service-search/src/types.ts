@@ -13,7 +13,9 @@ export enum SummaryType {
 
 export interface SearchAction {
     thought: string
-    safety?: 'allow' | 'block'
+    safety?: 'allow' | 'recheck' | 'block'
+    risk_level?: 'low' | 'medium' | 'high'
+    risk_categories?: string[]
     action: 'url' | 'search' | 'skip'
     content?: string[]
 }

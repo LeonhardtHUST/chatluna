@@ -17,6 +17,9 @@ $inner:
       searchThreshold: 'Similarity threshold for search content. Higher values mean more likely to search.'
       replySafetyCheckFails: 'Fixed reply when safety blocking is triggered.'
       safetyBlockKeywordGroups: 'Hard-block keyword groups that block browsing/search before query generation. Separate keywords with half-width commas in each group.'
+      safetyRecheckKeywordGroups: 'Soft-review keyword groups. Matching inputs are routed through conservative safety review before search or URL browsing.'
+      promptAttackWarning: 'Security boundary inserted into the search-router question payload to resist prompt injection.'
+      searchTriggerKeywords: 'Mechanical search trigger keywords. Separate keywords with half-width commas.'
       multiSourceMode:
           $desc: 'Multi-source mode.'
           $inner:

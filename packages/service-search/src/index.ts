@@ -8,8 +8,11 @@ import { createLogger } from 'koishi-plugin-chatluna/utils/logger'
 import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
+    DEFAULT_PROMPT_ATTACK_WARNING,
     DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS,
     DEFAULT_SAFETY_BLOCK_KEYWORDS,
+    DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS,
+    DEFAULT_SEARCH_TRIGGER_KEYWORDS,
     apply as configApply
 } from './config'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
@@ -41,6 +44,10 @@ export function apply(ctx: Context, config: Config) {
                 ? [{ name: 'Legacy', keywords: legacy }]
                 : DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS
     }
+
+    config.safetyRecheckKeywordGroups ??= DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS
+    config.promptAttackWarning ??= DEFAULT_PROMPT_ATTACK_WARNING
+    config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
 
     ctx.on('ready', async () => {
         const keywordExtractModel =
@@ -133,6 +140,10 @@ export function apply(ctx: Context, config: Config) {
                     const options = {
                         preset: params.preset,
                         botName: params.botName,
+                        botNames: [
+                            ...ctx.chatluna.config.botNames,
+                            params.botName
+                        ],
                         embeddings: params.embeddings,
                         historyMemory: params.historyMemory,
                         summaryType: config.summaryType,
@@ -146,10 +157,25 @@ export function apply(ctx: Context, config: Config) {
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
                         replySafetyCheckFails: config.replySafetyCheckFails,
-                        safetyBlockKeywords: config.safetyBlockKeywordGroups
-                            .flatMap((group) =>
-                                group.keywords.split(/[,，\r\n]+/)
-                            )
+                        safetyBlockKeywordGroups:
+                            config.safetyBlockKeywordGroups.map((group) => ({
+                                name: group.name,
+                                keywords: group.keywords
+                                    .split(/[,，\r\n]+/)
+                                    .map((keyword) => keyword.trim())
+                                    .filter((keyword) => keyword.length > 0)
+                            })),
+                        safetyRecheckKeywordGroups:
+                            config.safetyRecheckKeywordGroups.map((group) => ({
+                                name: group.name,
+                                keywords: group.keywords
+                                    .split(/[,，\r\n]+/)
+                                    .map((keyword) => keyword.trim())
+                                    .filter((keyword) => keyword.length > 0)
+                            })),
+                        promptAttackWarning: config.promptAttackWarning,
+                        searchTriggerKeywords: config.searchTriggerKeywords
+                            .split(/[,，\r\n]+/)
                             .map((keyword) => keyword.trim())
                             .filter((keyword) => keyword.length > 0),
                         variableService: ctx.chatluna.promptRenderer,
