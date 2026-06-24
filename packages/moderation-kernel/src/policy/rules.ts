@@ -1,3 +1,4 @@
+import type { ModerationKeywordGroup } from '../config'
 import type { ModerationAction, ModerationSeverity } from '../types'
 
 export interface KeywordRule {
@@ -27,3 +28,25 @@ export const DEFAULT_KEYWORD_RULES: KeywordRule[] = [
         action: 'block'
     }
 ]
+
+function pattern(text: string) {
+    return new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+}
+
+export function keywordGroupRules(
+    groups: ModerationKeywordGroup[],
+    action: ModerationAction
+): KeywordRule[] {
+    return groups.flatMap((group) =>
+        group.keywords
+            .filter((keyword) => keyword.trim().length > 0)
+            .map((keyword) => ({
+                id: `compat.${action}.${group.name}.${keyword}`,
+                pattern: pattern(keyword.trim()),
+                labels: [group.name],
+                severity: action === 'block' ? 5 : 2,
+                confidence: action === 'block' ? 1 : 0.6,
+                action
+            }))
+    )
+}

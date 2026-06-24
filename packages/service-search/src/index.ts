@@ -23,6 +23,7 @@ import { SummaryType } from './types'
 import { computed } from 'koishi-plugin-chatluna'
 import { BrowserManager } from './tools/browser/manager'
 import { registerBrowserTools } from './tools/browser/tools'
+import { applyServiceSearchCompatibility } from 'moderation-kernel'
 
 export { Config } from './config'
 
@@ -48,6 +49,10 @@ export function apply(ctx: Context, config: Config) {
     config.safetyRecheckKeywordGroups ??= DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS
     config.promptAttackWarning ??= DEFAULT_PROMPT_ATTACK_WARNING
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
+
+    if (ctx.moderation?.config) {
+        applyServiceSearchCompatibility(ctx.moderation.config, config, logger)
+    }
 
     ctx.on('ready', async () => {
         const keywordExtractModel =

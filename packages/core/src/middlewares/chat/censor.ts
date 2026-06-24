@@ -3,32 +3,10 @@ import { Config } from '../../config'
 import { ChainMiddlewareRunStatus, ChatChain } from '../../chains/chain'
 import type {} from '@koishijs/censor'
 import { isMessageContentText } from 'koishi-plugin-chatluna/utils/string'
-
-interface ModerationContext extends Context {
-    moderation?: {
-        config: {
-            enabled: boolean
-            shadowMode: boolean
-            outputEnabled: boolean
-            enforcement: {
-                fixedBlockReply: string
-            }
-            compatibility: {
-                mapCoreCensor: boolean
-            }
-        }
-        evaluateOutput(
-            session: unknown,
-            message: unknown,
-            metadata?: Record<string, unknown>
-        ): Promise<{
-            action: string
-            transformedText?: string
-            transformedElements?: unknown[]
-            fixedReply?: string
-        }>
-    }
-}
+import {
+    coreOutputModerationMetadata,
+    shouldUseCoreOutputModeration
+} from 'moderation-kernel'
 
 export function apply(ctx: Context, config: Config, chain: ChatChain) {
     chain
@@ -39,21 +17,20 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
                 return ChainMiddlewareRunStatus.SKIPPED
             }
 
-            const moderation = (ctx as ModerationContext).moderation
+            const moderation = ctx.moderation
 
             if (
-                moderation?.config.enabled &&
-                moderation.config.outputEnabled &&
-                (config.censor ||
-                    !moderation.config.compatibility.mapCoreCensor)
+                moderation &&
+                shouldUseCoreOutputModeration(
+                    config,
+                    moderation.config,
+                    ctx.logger
+                )
             ) {
                 const decision = await moderation.evaluateOutput(
                     session,
                     message,
-                    {
-                        source: 'chatluna-core-censor',
-                        rawOnCensor: config.rawOnCensor
-                    }
+                    coreOutputModerationMetadata(config)
                 )
 
                 if (decision.action === 'rewrite') {

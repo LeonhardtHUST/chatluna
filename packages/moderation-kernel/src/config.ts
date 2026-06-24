@@ -27,10 +27,21 @@ export interface ModerationConfig {
         maxRechecksPerRequest: number
     }
 
+    rules: {
+        blockKeywordGroups: ModerationKeywordGroup[]
+        reviewKeywordGroups: ModerationKeywordGroup[]
+        promptAttackWarning: string
+    }
+
     compatibility: {
         mapCoreCensor: boolean
         mapSearchSafetyConfig: boolean
     }
+}
+
+export interface ModerationKeywordGroup {
+    name: string
+    keywords: string[]
 }
 
 export const DEFAULT_MODERATION_CONFIG: ModerationConfig = {
@@ -53,6 +64,11 @@ export const DEFAULT_MODERATION_CONFIG: ModerationConfig = {
     enforcement: {
         fixedBlockReply: DEFAULT_BLOCK_REPLY,
         maxRechecksPerRequest: 1
+    },
+    rules: {
+        blockKeywordGroups: [],
+        reviewKeywordGroups: [],
+        promptAttackWarning: ''
     },
     compatibility: {
         mapCoreCensor: true,
@@ -110,6 +126,23 @@ export const Config: Schema<ModerationConfig> = Schema.object({
                 DEFAULT_MODERATION_CONFIG.enforcement.maxRechecksPerRequest
             )
     }).default(DEFAULT_MODERATION_CONFIG.enforcement),
+    rules: Schema.object({
+        blockKeywordGroups: Schema.array(
+            Schema.object({
+                name: Schema.string().default(''),
+                keywords: Schema.array(Schema.string()).default([])
+            })
+        ).default(DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups),
+        reviewKeywordGroups: Schema.array(
+            Schema.object({
+                name: Schema.string().default(''),
+                keywords: Schema.array(Schema.string()).default([])
+            })
+        ).default(DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups),
+        promptAttackWarning: Schema.string()
+            .role('textarea')
+            .default(DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning)
+    }).default(DEFAULT_MODERATION_CONFIG.rules),
     compatibility: Schema.object({
         mapCoreCensor: Schema.boolean().default(
             DEFAULT_MODERATION_CONFIG.compatibility.mapCoreCensor

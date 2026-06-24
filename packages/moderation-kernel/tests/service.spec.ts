@@ -27,6 +27,10 @@ function cfg(config: Partial<ModerationConfig> = {}): ModerationConfig {
             ...DEFAULT_MODERATION_CONFIG.enforcement,
             ...config.enforcement
         },
+        rules: {
+            ...DEFAULT_MODERATION_CONFIG.rules,
+            ...config.rules
+        },
         compatibility: {
             ...DEFAULT_MODERATION_CONFIG.compatibility,
             ...config.compatibility

@@ -2,6 +2,7 @@ import { Context, Service } from 'koishi'
 import type { ModerationConfig } from './config'
 import { DEFAULT_ALLOW_DECISION } from './constants'
 import { evaluateLocalRules } from './policy/engine'
+import { DEFAULT_KEYWORD_RULES, keywordGroupRules } from './policy/rules'
 import { applyAdminCommands } from './admin/commands'
 import { defineModerationModels } from './storage/model'
 import { ModerationRepository } from './storage/repository'
@@ -61,7 +62,17 @@ export class ModerationService extends Service {
         const state = await this.getUserRiskState(req.userKey)
         const decision = normalizeDecision(
             this.config.backend.useKeywordRules
-                ? evaluateLocalRules(req, state)
+                ? evaluateLocalRules(req, state, [
+                      ...DEFAULT_KEYWORD_RULES,
+                      ...keywordGroupRules(
+                          this.config.rules.blockKeywordGroups,
+                          'block'
+                      ),
+                      ...keywordGroupRules(
+                          this.config.rules.reviewKeywordGroups,
+                          'review'
+                      )
+                  ])
                 : DEFAULT_ALLOW_DECISION
         )
         const event = await this.repository.recordEvent(req, decision)

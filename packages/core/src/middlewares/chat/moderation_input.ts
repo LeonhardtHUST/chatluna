@@ -1,32 +1,12 @@
 import { Context } from 'koishi'
 import { Config } from '../../config'
 import { ChainMiddlewareRunStatus, ChatChain } from '../../chains/chain'
-
-interface ModerationContext extends Context {
-    moderation?: {
-        config: {
-            enabled: boolean
-            shadowMode: boolean
-            inputEnabled: boolean
-            enforcement: {
-                fixedBlockReply: string
-            }
-        }
-        evaluateInput(
-            session: unknown,
-            text: string,
-            metadata?: Record<string, unknown>
-        ): Promise<{
-            action: string
-            fixedReply?: string
-        }>
-    }
-}
+import type {} from 'moderation-kernel'
 
 export function apply(ctx: Context, config: Config, chain: ChatChain) {
     chain
         .middleware('moderation_input', async (session, context) => {
-            const moderation = (ctx as ModerationContext).moderation
+            const moderation = ctx.moderation
 
             if (
                 !moderation?.config.enabled ||

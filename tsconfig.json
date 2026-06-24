@@ -5,7 +5,8 @@
         "paths": {
             "koishi-plugin-chatluna": ["packages/core/src"],
             "koishi-plugin-chatluna/*": ["packages/core/src/*"],
-            "koishi-plugin-chatluna-*": ["packages/*/src"]
+            "koishi-plugin-chatluna-*": ["packages/*/src"],
+            "moderation-kernel": ["packages/moderation-kernel/src"]
         }
     }
 }

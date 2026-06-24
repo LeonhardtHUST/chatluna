@@ -6,14 +6,15 @@ import type {
 } from '../types'
 import { normalizeDecision } from '../types'
 import { addSeverityScore, clampRiskScore } from './scoring'
-import { DEFAULT_KEYWORD_RULES } from './rules'
+import { DEFAULT_KEYWORD_RULES, KeywordRule } from './rules'
 
 export function evaluateLocalRules(
     req: ModerationRequest,
-    state: UserRiskState
+    state: UserRiskState,
+    rules: KeywordRule[] = DEFAULT_KEYWORD_RULES
 ): ModerationDecision {
     const text = req.contentText ?? ''
-    const rule = DEFAULT_KEYWORD_RULES.find((item) => item.pattern.test(text))
+    const rule = rules.find((item) => item.pattern.test(text))
 
     if (!rule) {
         return normalizeDecision({
