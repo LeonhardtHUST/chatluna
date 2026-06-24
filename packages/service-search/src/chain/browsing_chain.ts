@@ -415,37 +415,6 @@ export class ChatLunaBrowsingChain
             }
         }
 
-        const fixedAction =
-            precheck.safety === 'allow'
-                ? fixedSearchAction(
-                      clean,
-                      date,
-                      this.searchTriggerKeywords
-                  )
-                : null
-
-        if (fixedAction != null) {
-            logger?.debug(`action: ${JSON.stringify(fixedAction)}`)
-            await this._search(
-                fixedAction,
-                message,
-                chatHistory,
-                session,
-                events,
-                conversationId,
-                signal
-            )
-
-            return await this._answer(
-                requests,
-                stream,
-                signal,
-                session,
-                maxToken,
-                events
-            )
-        }
-
         // recreate questions
 
         const newQuestion = (
@@ -501,8 +470,21 @@ export class ChatLunaBrowsingChain
             }
         }
 
-        if (Array.isArray(searchAction?.content)) {
-            const queryHit = searchAction.content
+        const action =
+            searchAction.action === 'skip' && precheck.safety === 'allow'
+                ? (fixedSearchAction(
+                      clean,
+                      date,
+                      this.searchTriggerKeywords
+                  ) ?? searchAction)
+                : searchAction
+
+        if (action !== searchAction) {
+            logger?.debug(`fixed action: ${JSON.stringify(action)}`)
+        }
+
+        if (Array.isArray(action?.content)) {
+            const queryHit = action.content
                 .map((item) =>
                     this._findKeywordHit(item, this.safetyBlockKeywordGroups)
                 )
@@ -524,9 +506,9 @@ export class ChatLunaBrowsingChain
 
         // search questions
 
-        if (searchAction != null && searchAction.action !== 'skip') {
+        if (action != null && action.action !== 'skip') {
             await this._search(
-                searchAction,
+                action,
                 message,
                 chatHistory,
                 session,
