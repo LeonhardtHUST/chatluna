@@ -9,6 +9,7 @@ import { apply as chat_time_limit_check } from './middlewares/chat/chat_time_lim
 import { apply as chat_time_limit_save } from './middlewares/chat/chat_time_limit_save'
 import { apply as cooldown_time } from './middlewares/chat/cooldown_time'
 import { apply as message_delay } from './middlewares/chat/message_delay'
+import { apply as moderation_input } from './middlewares/chat/moderation_input'
 import { apply as read_chat_message } from './middlewares/chat/read_chat_message'
 import { apply as render_message } from './middlewares/chat/render_message'
 import { apply as rollback_chat } from './middlewares/chat/rollback_chat'
@@ -52,6 +53,7 @@ export async function middleware(ctx: Context, config: Config) {
             chat_time_limit_save,
             cooldown_time,
             message_delay,
+            moderation_input,
             read_chat_message,
             render_message,
             rollback_chat,
