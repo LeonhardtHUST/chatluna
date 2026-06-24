@@ -457,6 +457,7 @@ export class ChatLunaBrowsingChain
                     ),
                     time: date,
                     question: question.payload,
+                    risk_level: precheck.risk_level,
                     precheck: JSON.stringify({
                         safety: precheck.safety,
                         risk_level: precheck.risk_level,
