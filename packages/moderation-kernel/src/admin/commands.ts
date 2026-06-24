@@ -75,10 +75,14 @@ function userPatch(opts: UserOptions, score?: number): Partial<UserRiskState> {
     }
 }
 
-export function applyAdminCommands(ctx: Context, service: ModerationService) {
-    ctx.command('moderation', 'Moderation admin commands', { authority: 3 })
+export function registerModerationCommands(
+    ctx: Context,
+    service: ModerationService,
+    prefix: string
+) {
+    ctx.command(prefix, 'Moderation admin commands', { authority: 3 })
 
-    ctx.command('moderation.status [user:string]', 'Show moderation status', {
+    ctx.command(`${prefix}.status [user:string]`, 'Show moderation status', {
         authority: 3
     }).action(async ({ session }, user) => {
         const key = user ?? `${session.platform}:${session.userId}`
@@ -91,10 +95,13 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
         )
     })
 
-    ctx.command('moderation.case <eventId:string>', 'Show moderation case', {
+    ctx.command(`${prefix}.case <eventId:string>`, 'Show moderation case', {
         authority: 3
     })
-        .option('raw', '--raw')
+        .option(
+            'raw',
+            '--raw Show raw evidence only when raw evidence storage is enabled and evidence has not expired.'
+        )
         .action(async ({ options }, eventId) => {
             const event = await service.repository.getEvent(eventId)
             return formatEventCase(event, {
@@ -105,16 +112,16 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
         })
 
     ctx.command(
-        'moderation.user <user:string>',
+        `${prefix}.user <user:string>`,
         'Change moderation user state',
         {
             authority: 3
         }
     )
-        .option('watch', '--watch')
-        .option('restrict', '--restrict')
-        .option('suspend', '--suspend')
-        .option('restore', '--restore')
+        .option('watch', '--watch Set user state to watch.')
+        .option('restrict', '--restrict Set user state to restricted.')
+        .option('suspend', '--suspend Set user state to suspended.')
+        .option('restore', '--restore Restore user to normal state.')
         .action(async ({ session, options }, user) => {
             const patch = userPatch(options as UserOptions)
             await recordUserStateOverride(
@@ -129,9 +136,11 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
         })
 
     ctx.command(
-        'moderation.score <user:string> <value:number>',
+        `${prefix}.score <user:string> <value:number>`,
         'Set moderation user score',
-        { authority: 3 }
+        {
+            authority: 3
+        }
     ).action(async ({ session }, user, value) => {
         await recordUserStateOverride(
             service,
@@ -144,10 +153,16 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
         return formatState(await service.getUserRiskState(user))
     })
 
+    ctx.command(`${prefix}.policy`, 'Moderation policy commands', {
+        authority: 3
+    })
+
     ctx.command(
-        'moderation.policy.test <text:text>',
+        `${prefix}.policy.test <text:text>`,
         'Evaluate local moderation policy without persistence',
-        { authority: 3 }
+        {
+            authority: 3
+        }
     ).action(async (_argv, text) => {
         const decision = normalizeDecision(
             evaluateLocalRules(
@@ -169,8 +184,12 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
         return JSON.stringify(decision)
     })
 
+    ctx.command(`${prefix}.retention`, 'Moderation retention commands', {
+        authority: 3
+    })
+
     ctx.command(
-        'moderation.retention.run',
+        `${prefix}.retention.run`,
         'Purge expired moderation evidence',
         {
             authority: 3
@@ -180,7 +199,7 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
     })
 
     ctx.command(
-        'moderation.shadow <state:string>',
+        `${prefix}.shadow <state:string>`,
         'Set moderation shadow mode',
         {
             authority: 3
@@ -191,9 +210,11 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
     })
 
     ctx.command(
-        'moderation.override <eventId:string> <action:string>',
+        `${prefix}.override <eventId:string> <action:string>`,
         'Record moderation override',
-        { authority: 3 }
+        {
+            authority: 3
+        }
     ).action(async ({ session }, eventId, action) => {
         const review = await recordManualOverride(
             service,
@@ -205,6 +226,11 @@ export function applyAdminCommands(ctx: Context, service: ModerationService) {
 
         return `override: ${review.id}`
     })
+}
+
+export function applyAdminCommands(ctx: Context, service: ModerationService) {
+    registerModerationCommands(ctx, service, 'moderation')
+    registerModerationCommands(ctx, service, 'chatluna.moderation')
 }
 
 export { formatState, userPatch }

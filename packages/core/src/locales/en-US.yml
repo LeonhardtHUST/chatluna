@@ -244,6 +244,52 @@ commands:
             purge-legacy:
                 description: Purge migrated legacy ChatLuna data.
 
+        moderation:
+            description: ChatLuna moderation administration.
+            status:
+                description: Show moderation status.
+                arguments:
+                    user: Target user key.
+            case:
+                description: Show moderation case metadata.
+                arguments:
+                    eventId: Moderation event ID.
+                options:
+                    raw: Show raw evidence only when raw evidence storage is enabled and evidence has not expired.
+            user:
+                description: Change moderation user state.
+                arguments:
+                    user: Target user key.
+                options:
+                    watch: Set user state to watch.
+                    restrict: Set user state to restricted.
+                    suspend: Set user state to suspended.
+                    restore: Restore user to normal state.
+            score:
+                description: Set moderation user score.
+                arguments:
+                    user: Target user key.
+                    value: New score value.
+            policy:
+                description: Moderation policy commands.
+                test:
+                    description: Evaluate local moderation policy without persistence.
+                    arguments:
+                        text: Text to evaluate.
+            retention:
+                description: Moderation retention commands.
+                run:
+                    description: Purge expired moderation evidence.
+            shadow:
+                description: Set moderation shadow mode.
+                arguments:
+                    state: Shadow mode state.
+            override:
+                description: Record moderation override.
+                arguments:
+                    eventId: Moderation event ID.
+                    action: Override action.
+
         model:
             description: ChatLuna model management.
             list:

@@ -244,6 +244,52 @@ commands:
             purge-legacy:
                 description: 清理已迁移的旧版 ChatLuna 数据。
 
+        moderation:
+            description: ChatLuna 审核管理指令。
+            status:
+                description: 查看审核状态。
+                arguments:
+                    user: 目标用户标识。
+            case:
+                description: 查看审核事件元数据。
+                arguments:
+                    eventId: 审核事件 ID。
+                options:
+                    raw: 仅在已启用原始证据存储且证据未过期时显示原始证据。
+            user:
+                description: 修改用户审核状态。
+                arguments:
+                    user: 目标用户标识。
+                options:
+                    watch: 将用户状态设为观察。
+                    restrict: 将用户状态设为受限。
+                    suspend: 将用户状态设为暂停。
+                    restore: 将用户恢复为正常状态。
+            score:
+                description: 设置用户审核分数。
+                arguments:
+                    user: 目标用户标识。
+                    value: 新分数。
+            policy:
+                description: 审核策略指令。
+                test:
+                    description: 在不持久化的情况下测试本地审核策略。
+                    arguments:
+                        text: 要测试的文本。
+            retention:
+                description: 审核保留策略指令。
+                run:
+                    description: 清理已过期的审核证据。
+            shadow:
+                description: 设置审核影子模式。
+                arguments:
+                    state: 影子模式状态。
+            override:
+                description: 记录审核覆盖操作。
+                arguments:
+                    eventId: 审核事件 ID。
+                    action: 覆盖动作。
+
         model:
             description: ChatLuna 模型相关指令。
             list:
