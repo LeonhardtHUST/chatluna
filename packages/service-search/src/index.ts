@@ -8,12 +8,12 @@ import { createLogger } from 'koishi-plugin-chatluna/utils/logger'
 import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
+    apply as configApply,
     DEFAULT_PROMPT_ATTACK_WARNING,
     DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS,
     DEFAULT_SAFETY_BLOCK_KEYWORDS,
     DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS,
-    DEFAULT_SEARCH_TRIGGER_KEYWORDS,
-    apply as configApply
+    DEFAULT_SEARCH_TRIGGER_KEYWORDS
 } from './config'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
 import { SearchManager } from './provide'
@@ -220,7 +220,7 @@ export async function createModel(ctx: Context, model: string) {
 
 export const inject = {
     required: ['chatluna'],
-    optional: ['puppeteer', 'chatluna_agent']
+    optional: ['puppeteer', 'chatluna_agent', 'moderation']
 }
 
 export const name = 'chatluna-search-service'

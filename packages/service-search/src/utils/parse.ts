@@ -1,5 +1,14 @@
 import { SearchAction } from '../types'
 
+type RouterResult = SearchAction & {
+    risk_event?: {
+        category?: string
+        severity?: number
+        confidence?: number
+        redline?: boolean
+    }
+}
+
 /**
  * 预处理内容，移除可能的 markdown 代码块标记
  */
@@ -90,16 +99,50 @@ export function removeProperty<T extends object, K extends keyof T>(
 
 export function parseSearchAction(content: string): SearchAction {
     const action = preprocessContent(content)
-    const parsed = tryParseJSON<SearchAction>(action)
+    const parsed = tryParseJSON<RouterResult>(action)
     const result =
-        parsed ?? tryParseJSON<SearchAction>(attemptToFixJSON(action))
+        parsed ?? tryParseJSON<RouterResult>(attemptToFixJSON(action))
 
-    if (action.includes('[skip]') || result == null) {
+    if (action.includes('[skip]')) {
         return {
             action: 'skip',
             safety: 'allow',
             thought: 'skip the search',
             content: []
+        }
+    }
+
+    if (result == null) {
+        return {
+            action: 'skip',
+            safety: 'recheck',
+            thought: 'invalid router json',
+            content: []
+        }
+    }
+
+    const categories = Array.isArray(result.risk_categories)
+        ? result.risk_categories
+        : result.risk_event?.category != null &&
+            result.risk_event.category !== 'none'
+          ? [result.risk_event.category]
+          : []
+    const riskLevel =
+        result.risk_level ??
+        (result.risk_event?.redline || (result.risk_event?.severity ?? 0) >= 4
+            ? 'high'
+            : (result.risk_event?.severity ?? 0) >= 2
+              ? 'medium'
+              : 'low')
+
+    if (result.safety == null) {
+        return {
+            action: 'skip',
+            safety: 'recheck',
+            thought: 'missing router safety',
+            content: [],
+            risk_level: riskLevel,
+            risk_categories: categories
         }
     }
 
@@ -109,10 +152,8 @@ export function parseSearchAction(content: string): SearchAction {
             safety: result.safety,
             thought: result.thought ?? 'blocked by safety policy',
             content: [],
-            risk_level: result.risk_level,
-            risk_categories: Array.isArray(result.risk_categories)
-                ? result.risk_categories
-                : []
+            risk_level: riskLevel,
+            risk_categories: categories
         }
     }
 
@@ -124,9 +165,11 @@ export function parseSearchAction(content: string): SearchAction {
     ) {
         return {
             action: 'skip',
-            safety: 'allow',
+            safety: 'recheck',
             thought: 'invalid router safety',
-            content: []
+            content: [],
+            risk_level: riskLevel,
+            risk_categories: categories
         }
     }
 
@@ -149,10 +192,8 @@ export function parseSearchAction(content: string): SearchAction {
             safety: 'allow',
             thought: result.thought ?? 'skip the search',
             content: [],
-            risk_level: result.risk_level,
-            risk_categories: Array.isArray(result.risk_categories)
-                ? result.risk_categories
-                : []
+            risk_level: riskLevel,
+            risk_categories: categories
         }
     }
 
@@ -180,10 +221,8 @@ export function parseSearchAction(content: string): SearchAction {
                   safety: 'allow',
                   thought: result.thought ?? 'browse url',
                   content: urls,
-                  risk_level: result.risk_level,
-                  risk_categories: Array.isArray(result.risk_categories)
-                      ? result.risk_categories
-                      : []
+                  risk_level: riskLevel,
+                  risk_categories: categories
               }
             : {
                   action: 'skip',
@@ -199,10 +238,8 @@ export function parseSearchAction(content: string): SearchAction {
             safety: 'allow',
             thought: result.thought ?? 'search the web',
             content: items,
-            risk_level: result.risk_level,
-            risk_categories: Array.isArray(result.risk_categories)
-                ? result.risk_categories
-                : []
+            risk_level: riskLevel,
+            risk_categories: categories
         }
     }
 

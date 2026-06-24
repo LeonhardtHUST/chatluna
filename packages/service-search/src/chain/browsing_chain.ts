@@ -42,6 +42,30 @@ import { BrowserManager } from '../tools/browser/manager'
 
 // github.com/langchain-ai/weblangchain/blob/main/nextjs/app/api/chat/stream_log/route.ts#L81
 
+interface ModerationApp {
+    moderation?: {
+        config: {
+            enabled: boolean
+            shadowMode: boolean
+            preSearchEnabled: boolean
+            enforcement: {
+                fixedBlockReply: string
+            }
+        }
+        evaluatePreSearch(
+            session: Session,
+            text: string,
+            history?: unknown[],
+            metadata?: Record<string, unknown>
+        ): Promise<{
+            action: string
+            labels: string[]
+            reasons: string[]
+            fixedReply?: string
+        }>
+    }
+}
+
 export interface ChatLunaBrowsingChainInput {
     botName: string
     botNames: string[]
@@ -396,18 +420,62 @@ export class ChatLunaBrowsingChain
         )
         const clean = question.clean
         const date = new Date().toISOString().slice(0, 10)
-        const precheck = this._precheck(clean)
+        let precheck = this._precheck(clean)
 
         logger?.debug(`[search-service] raw question: ${input}`)
         logger?.debug(`[search-service] clean question: ${clean}`)
         logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
         if (precheck.safety === 'block') {
-            logger?.debug(
-                `blocked response: ${precheck.categories.join(',')}`
-            )
+            logger?.debug(`blocked response: ${precheck.categories.join(',')}`)
             return {
                 message: safetyBlockMessage(this.replySafetyCheckFails)
+            }
+        }
+
+        const moderation = (session.app as ModerationApp).moderation
+
+        if (moderation?.config.enabled && moderation.config.preSearchEnabled) {
+            const decision = await moderation.evaluatePreSearch(
+                session,
+                clean,
+                chatHistory,
+                {
+                    source: 'service-search'
+                }
+            )
+
+            logger?.debug(
+                `[search-service] moderation: ${JSON.stringify(decision)}`
+            )
+
+            if (!moderation.config.shadowMode) {
+                if (
+                    decision.action === 'block' ||
+                    decision.action === 'suspend'
+                ) {
+                    return {
+                        message: safetyBlockMessage(
+                            decision.fixedReply ??
+                                moderation.config.enforcement.fixedBlockReply ??
+                                this.replySafetyCheckFails
+                        )
+                    }
+                }
+
+                if (decision.action === 'review') {
+                    precheck = {
+                        safety: 'recheck',
+                        risk_level: 'medium',
+                        categories: decision.labels,
+                        matched_rule: 'moderation-kernel',
+                        search_allowed: false,
+                        url_allowed: false,
+                        policy_hint:
+                            decision.reasons.join('; ') ||
+                            'Moderation review requested before search.'
+                    }
+                }
             }
         }
 
@@ -761,9 +829,7 @@ const formatChatHistoryAsString = (history: BaseMessage[]) => {
 function safetyBlockMessage(content?: string) {
     return new AIMessage({
         content:
-            content?.length > 0
-                ? content
-                : 'Request blocked by safety policy.',
+            content?.length > 0 ? content : 'Request blocked by safety policy.',
         additional_kwargs: {
             chatluna_skip_history: true,
             chatluna_remove_user_history: true
@@ -841,7 +907,10 @@ function extractQuestion(
     const clean =
         name == null
             ? text
-            : text.slice(name.length).replace(/^\s*[:,，：]?\s*/, '').trim()
+            : text
+                  .slice(name.length)
+                  .replace(/^\s*[:,，：]?\s*/, '')
+                  .trim()
 
     return {
         clean,
