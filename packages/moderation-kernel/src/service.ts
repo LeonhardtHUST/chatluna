@@ -19,6 +19,10 @@ interface ModerationSession {
     guildId?: string
 }
 
+interface OutputMessage {
+    content?: string | unknown[]
+}
+
 function getUserKey(sessionOrUserKey: ModerationSession | string): string {
     if (typeof sessionOrUserKey === 'string') {
         return sessionOrUserKey
@@ -114,16 +118,23 @@ export class ModerationService extends Service {
 
     evaluateOutput(
         session: ModerationSession,
-        message: string | unknown[],
+        message: string | unknown[] | OutputMessage,
         metadata: Record<string, unknown> = {}
     ): Promise<ModerationDecision> {
+        const content =
+            typeof message === 'object' &&
+            !Array.isArray(message) &&
+            message != null
+                ? message.content
+                : message
+
         return this.evaluate({
             stage: 'output',
             session,
             userKey: getUserKey(session),
             channelKey: getChannelKey(session),
-            contentText: typeof message === 'string' ? message : undefined,
-            contentElements: Array.isArray(message) ? message : undefined,
+            contentText: typeof content === 'string' ? content : undefined,
+            contentElements: Array.isArray(content) ? content : undefined,
             metadata: {
                 ...metadata,
                 platform: session.platform
