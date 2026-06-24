@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { Context, Logger, Time, User } from 'koishi'
+import { DEFAULT_MODERATION_CONFIG, ModerationService } from 'moderation-kernel'
 import { ChatLunaService } from 'koishi-plugin-chatluna/services/chat'
 import { forkScopeToDisposable } from 'koishi-plugin-chatluna/utils/koishi'
 import {
@@ -160,6 +161,10 @@ function setupServices(
     config: Config,
     disposables: PromiseLikeDisposable[]
 ) {
+    const moderation = config.moderation ?? DEFAULT_MODERATION_CONFIG
+    disposables.push(
+        forkScopeToDisposable(ctx.plugin(ModerationService, moderation))
+    )
     disposables.push(forkScopeToDisposable(ctx.plugin(ChatLunaService, config)))
 }
 

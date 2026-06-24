@@ -1,4 +1,9 @@
 import { Awaitable, Computed, Schema, Time } from 'koishi'
+import {
+    DEFAULT_MODERATION_CONFIG,
+    Config as ModerationConfig,
+    type ModerationConfig as ModerationConfigType
+} from 'moderation-kernel'
 
 export interface Config {
     botNames: string[]
@@ -52,6 +57,7 @@ export interface Config {
     voiceSpeakId: number
 
     enableSimilarityCheck: boolean
+    moderation: ModerationConfigType
 }
 
 export const Config: Schema<Config> = Schema.intersect([
@@ -177,6 +183,10 @@ export const Config: Schema<Config> = Schema.intersect([
     Schema.object({
         voiceSpeakId: Schema.number().default(0),
         isLog: Schema.boolean().default(false)
+    }),
+
+    Schema.object({
+        moderation: ModerationConfig.default(DEFAULT_MODERATION_CONFIG)
     }),
 
     Schema.intersect([

@@ -41,7 +41,7 @@ function getChannelKey(session: ModerationSession): string | undefined {
 }
 
 export class ModerationService extends Service {
-    static inject = ['database'] as const
+    static inject = ['database']
 
     public readonly repository: ModerationRepository
 
