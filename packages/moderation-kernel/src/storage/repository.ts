@@ -229,6 +229,9 @@ export class ModerationRepository {
     }
 
     async purgeExpiredEvidence(now: Date = new Date()): Promise<number> {
+        // eventRetentionDays is reserved for future admin/ops event-row
+        // retention. This path only purges evidence fields; future event
+        // deletion must protect rows referenced by chatluna_moderation_review.
         const rows = await this.ctx.database.get(
             'chatluna_moderation_event',
             {}

@@ -28,6 +28,8 @@ describe('moderation retention', () => {
         )
 
         const stored = await repo.getEvent(event.id)
+        assert.exists(stored)
+        assert.equal(stored?.id, event.id)
         assert.equal(stored?.rawText, null)
         assert.equal(stored?.redactedText, null)
         assert.equal(stored?.expireAt, null)
