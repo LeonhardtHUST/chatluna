@@ -427,6 +427,9 @@ export class ChatLunaBrowsingChain
                     time: date,
                     question: question.payload,
                     risk_level: precheck.risk_level,
+                    search_triggered: JSON.stringify(
+                        searchTriggered(clean, this.searchTriggerKeywords)
+                    ),
                     precheck: JSON.stringify({
                         safety: precheck.safety,
                         risk_level: precheck.risk_level,
@@ -472,11 +475,7 @@ export class ChatLunaBrowsingChain
 
         const action =
             searchAction.action === 'skip' && precheck.safety === 'allow'
-                ? (fixedSearchAction(
-                      clean,
-                      date,
-                      this.searchTriggerKeywords
-                  ) ?? searchAction)
+                ? (fixedUrlAction(clean) ?? searchAction)
                 : searchAction
 
         if (action !== searchAction) {
@@ -852,11 +851,7 @@ function extractQuestion(
     }
 }
 
-function fixedSearchAction(
-    input: string,
-    date: string,
-    searchTriggerKeywords: string[]
-): SearchAction | null {
+function fixedUrlAction(input: string): SearchAction | null {
     const urls = input
         .match(/https?:\/\/\S+/gi)
         ?.map((url) => url.replace(/[),，。；;]+$/, ''))
@@ -871,24 +866,14 @@ function fixedSearchAction(
         }
     }
 
-    if (
-        searchTriggerKeywords.some((keyword) =>
-            input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
-        )
-    ) {
-        return {
-            thought: 'current input matches search trigger',
-            safety: 'allow',
-            action: 'search',
-            content: [
-                `${input} ${date}`,
-                `${input} 官网 公告 新闻 ${date}`,
-                `${input} 来源 原文 ${date}`
-            ]
-        }
-    }
 
     return null
+}
+
+function searchTriggered(input: string, searchTriggerKeywords: string[]) {
+    return searchTriggerKeywords.some((keyword) =>
+        input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
+    )
 }
 
 function raceAbort<T>(promise: Promise<T>, signal: AbortSignal) {

@@ -473,8 +473,9 @@ Decision order:
 2. Follow precheck_json. If precheck_json.safety="recheck", first perform a conservative safety review. Only continue when the user intent is clearly educational, scientific, defensive, compliant, or ordinary benign information seeking. If uncertain, return safety="block", risk_level="high", action="skip", content=[].
 3. If question_payload_json clearly asks to search, browse, generate, rewrite, summarize, translate, test, bypass, or optimize blocked content, return safety="block", risk_level="high", action="skip", content=[].
 4. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
-5. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
-6. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
+5. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
+6. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
+7. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
 
 Search query rules:
 - Preserve key entities, location, version, and user intent.
@@ -483,6 +484,9 @@ Search query rules:
 
 Precheck:
 {precheck}
+
+search_triggered_json:
+{search_triggered}
 
 Configured hard-block categories:
 {safetyBlockKeywords}
