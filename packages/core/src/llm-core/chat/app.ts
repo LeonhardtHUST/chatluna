@@ -223,16 +223,38 @@ export class ChatInterface {
         }
 
         const messageContent = getMessageContent(displayResponse.content)
+        const skipHistory =
+            responseMessage.additional_kwargs?.chatluna_skip_history === true
+        const removeUserHistory =
+            responseMessage.additional_kwargs?.chatluna_remove_user_history ===
+            true
 
         // Update chat history
         if (messageContent.trim().length > 0) {
-            await saveUser()
-            let saveMessage = responseMessage
-            if (!this.chatluna.currentConfig.rawOnCensor) {
-                saveMessage = displayResponse
-            }
+            if (skipHistory) {
+                if (removeUserHistory && hasSavedUser) {
+                    const messages = await this._chatHistory.getMessages()
+                    const last = messages[messages.length - 1]
 
-            await this._chatHistory.addMessage(saveMessage)
+                    if (
+                        last?.getType() === 'human' &&
+                        getMessageContent(last.content) ===
+                            getMessageContent(arg.message.content)
+                    ) {
+                        await this._chatHistory.replaceMessages(
+                            messages.slice(0, -1)
+                        )
+                    }
+                }
+            } else {
+                await saveUser()
+                let saveMessage = responseMessage
+                if (!this.chatluna.currentConfig.rawOnCensor) {
+                    saveMessage = displayResponse
+                }
+
+                await this._chatHistory.addMessage(saveMessage)
+            }
         }
 
         // Process response
@@ -250,7 +272,7 @@ export class ChatInterface {
             await this.handleChatError(arg, wrapper, error, false)
         }
 
-        if (this._input.autoTitle !== false) {
+        if (this._input.autoTitle !== false && !skipHistory) {
             autoSummarizeTitle(
                 this.chatluna,
                 arg.conversationId,

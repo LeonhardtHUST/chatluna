@@ -407,11 +407,7 @@ export class ChatLunaBrowsingChain
                 `blocked response: ${precheck.categories.join(',')}`
             )
             return {
-                message: new AIMessage(
-                    this.replySafetyCheckFails?.length > 0
-                        ? this.replySafetyCheckFails
-                        : 'Request blocked by safety policy.'
-                )
+                message: safetyBlockMessage(this.replySafetyCheckFails)
             }
         }
 
@@ -465,11 +461,7 @@ export class ChatLunaBrowsingChain
                 `blocked response: router ${searchAction.safety ?? 'missing safety'}`
             )
             return {
-                message: new AIMessage(
-                    this.replySafetyCheckFails?.length > 0
-                        ? this.replySafetyCheckFails
-                        : 'Request blocked by safety policy.'
-                )
+                message: safetyBlockMessage(this.replySafetyCheckFails)
             }
         }
 
@@ -494,11 +486,7 @@ export class ChatLunaBrowsingChain
                     `blocked response: search keyword ${queryHit.keyword}`
                 )
                 return {
-                    message: new AIMessage(
-                        this.replySafetyCheckFails?.length > 0
-                            ? this.replySafetyCheckFails
-                            : 'Request blocked by safety policy.'
-                    )
+                    message: safetyBlockMessage(this.replySafetyCheckFails)
                 }
             }
         }
@@ -770,6 +758,19 @@ const formatChatHistoryAsString = (history: BaseMessage[]) => {
         .join('\n')
 }
 
+function safetyBlockMessage(content?: string) {
+    return new AIMessage({
+        content:
+            content?.length > 0
+                ? content
+                : 'Request blocked by safety policy.',
+        additional_kwargs: {
+            chatluna_skip_history: true,
+            chatluna_remove_user_history: true
+        }
+    })
+}
+
 interface ChatLunaToolWrapper {
     name: string
     tool: ChatLunaTool
@@ -865,7 +866,6 @@ function fixedUrlAction(input: string): SearchAction | null {
             content: urls
         }
     }
-
 
     return null
 }
