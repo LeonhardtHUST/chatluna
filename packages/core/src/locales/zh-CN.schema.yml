@@ -72,7 +72,6 @@ $inner:
 
     - $desc: 内容安全
       moderation:
-          $desc: 内容安全
           enabled: 启用内容安全内核服务。
           shadowMode: 影子模式。开启后只记录内容安全判断，不执行拦截或暂停。建议确认误杀率后再关闭。
           inputEnabled: 在模型、搜索或工具调用前检查用户输入。

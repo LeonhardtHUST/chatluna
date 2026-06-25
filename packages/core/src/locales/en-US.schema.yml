@@ -71,7 +71,6 @@ $inner:
 
     - $desc: Moderation
       moderation:
-          $desc: Moderation
           enabled: Enable the moderation kernel service.
           shadowMode: Record moderation decisions without enforcing block or suspend actions. Disable only after reviewing logs and false positives.
           inputEnabled: Evaluate user input before model, search, or tool execution.

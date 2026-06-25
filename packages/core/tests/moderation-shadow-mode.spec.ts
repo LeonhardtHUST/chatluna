@@ -1,7 +1,9 @@
 /// <reference types="mocha" />
 
 import { assert } from 'chai'
+import { readFileSync } from 'fs'
 import memory from '@koishijs/plugin-database-memory'
+import * as path from 'path'
 import { Context } from 'koishi'
 import * as chatluna from '../src'
 import {
@@ -27,6 +29,31 @@ function command(app: Context, name: string) {
 }
 
 describe('core moderation shadow-mode integration', () => {
+    it('keeps moderation schema under a single section title', () => {
+        const zh = readFileSync(
+            path.resolve(__dirname, '../src/locales/zh-CN.schema.yml'),
+            'utf8'
+        )
+        const en = readFileSync(
+            path.resolve(__dirname, '../src/locales/en-US.schema.yml'),
+            'utf8'
+        )
+
+        assert.include(zh, '- $desc: 内容安全')
+        assert.notInclude(zh, 'moderation:\n          $desc: 内容安全')
+        assert.include(en, '- $desc: Moderation')
+        assert.notInclude(en, 'moderation:\n          $desc: Moderation')
+    })
+
+    it('uses empty moderation keyword defaults in core schema', () => {
+        const text = JSON.stringify(
+            (chatluna.Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.include(text, '"blockKeywordGroups":[]')
+        assert.include(text, '"reviewKeywordGroups":[]')
+    })
+
     it('registers moderation service and chatluna moderation commands from core', async () => {
         const app = new Context()
         app.plugin(memory)

@@ -265,14 +265,14 @@ describe('moderation compatibility mapping', () => {
         )
     })
 
-    it('ships default moderation keyword groups and prompt warning', () => {
-        assert.isAbove(
-            DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups.length,
-            0
+    it('ships empty default keyword groups and prompt warning', () => {
+        assert.deepEqual(
+            DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups,
+            []
         )
-        assert.isAbove(
-            DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups.length,
-            0
+        assert.deepEqual(
+            DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups,
+            []
         )
         assert.include(
             DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning,

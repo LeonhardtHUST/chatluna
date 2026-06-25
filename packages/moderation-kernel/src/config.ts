@@ -167,8 +167,8 @@ export const DEFAULT_MODERATION_CONFIG: ModerationConfig = {
         maxRechecksPerRequest: 1
     },
     rules: {
-        blockKeywordGroups: DEFAULT_MODERATION_BLOCK_KEYWORD_GROUPS,
-        reviewKeywordGroups: DEFAULT_MODERATION_REVIEW_KEYWORD_GROUPS,
+        blockKeywordGroups: [],
+        reviewKeywordGroups: [],
         promptAttackWarning: DEFAULT_PROMPT_ATTACK_WARNING
     },
     compatibility: {
