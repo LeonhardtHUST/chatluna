@@ -69,6 +69,39 @@ $inner:
       voiceSpeakId: Set default speaker ID for vits service.
       isLog: Enable debug mode.
 
+    - $desc: Moderation
+      moderation:
+          $desc: Central moderation kernel settings. Defaults to shadow mode, which records decisions without enforcing blocks.
+          enabled: Enable the moderation kernel service.
+          shadowMode: Record moderation decisions without enforcing block or suspend actions. Disable only after reviewing logs and false positives.
+          inputEnabled: Evaluate user input before model, search, or tool execution.
+          preSearchEnabled: Evaluate search and URL browsing requests before external fetching.
+          outputEnabled: Evaluate and optionally transform generated replies before sending.
+          backend:
+              $desc: Moderation backends
+              useKoishiCensor: Reuse Koishi censor service for output text transformation when available.
+              useKeywordRules: Enable deterministic local keyword and policy rules.
+              useLlmRecheck: Enable future LLM-based secondary review. Currently kept disabled by default.
+          storage:
+              $desc: Moderation storage and privacy
+              storeRawTextForAppeal: Store raw evidence text for appeal review. Disabled by default for privacy.
+              rawTextRetentionDays: Number of days to retain raw evidence when raw storage is enabled.
+              eventRetentionDays: Reserved event metadata retention window in days. Event deletion must preserve review references.
+              redactBeforePersist: Store coarse redacted evidence metadata instead of raw text when raw storage is disabled.
+          enforcement:
+              $desc: Moderation enforcement
+              fixedBlockReply: Fixed reply sent when moderation blocks a request in enforce mode.
+              maxRechecksPerRequest: Maximum secondary review attempts for one request.
+          rules:
+              $desc: Local keyword rules
+              blockKeywordGroups: Keyword groups that produce block decisions.
+              reviewKeywordGroups: Keyword groups that produce review decisions.
+              promptAttackWarning: Safety warning injected into review prompts to treat prompt-injection text as untrusted user content.
+          compatibility:
+              $desc: Legacy compatibility mapping
+              mapCoreCensor: Map legacy ChatLuna censor settings into moderation output behavior.
+              mapSearchSafetyConfig: Map legacy search-service safety settings into moderation rules.
+
     - isProxy:
           $desc: Enable proxy for ChatLuna family plugin network requests.
           $inner:

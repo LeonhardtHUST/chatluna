@@ -70,6 +70,39 @@ $inner:
       voiceSpeakId: 设置使用 vits 服务时的默认发音人 ID。
       isLog: 是否启用调试模式。
 
+    - $desc: 内容安全
+      moderation:
+          $desc: ChatLuna 统一内容安全内核配置。默认启用影子模式，只记录判断，不实际拦截。
+          enabled: 启用内容安全内核服务。
+          shadowMode: 影子模式。开启后只记录内容安全判断，不执行拦截或暂停。建议确认误杀率后再关闭。
+          inputEnabled: 在模型、搜索或工具调用前检查用户输入。
+          preSearchEnabled: 在执行搜索或 URL 浏览前检查请求。
+          outputEnabled: 在发送回复前检查并可选择改写模型输出。
+          backend:
+              $desc: 审核后端
+              useKoishiCensor: 可用时复用 Koishi censor 服务处理输出文本转换。
+              useKeywordRules: 启用本地确定性关键词和策略规则。
+              useLlmRecheck: 启用未来的 LLM 二次复核。默认关闭。
+          storage:
+              $desc: 存储与隐私
+              storeRawTextForAppeal: 为申诉复核保存原始证据文本。出于隐私考虑默认关闭。
+              rawTextRetentionDays: 启用原文保存时，原始证据文本保留的天数。
+              eventRetentionDays: 预留的事件元数据保留天数。未来删除事件时必须保护已有复核记录引用。
+              redactBeforePersist: 原文保存关闭时，仅保存粗粒度脱敏证据元数据。
+          enforcement:
+              $desc: 执行策略
+              fixedBlockReply: 执行模式下请求被拦截时发送的固定回复。
+              maxRechecksPerRequest: 单次请求允许的最大二次复核次数。
+          rules:
+              $desc: 本地关键词规则
+              blockKeywordGroups: 触发拦截决策的关键词分组。
+              reviewKeywordGroups: 触发复核决策的关键词分组。
+              promptAttackWarning: 注入复核提示词的安全提醒，用于把提示词注入内容视为不可信用户文本。
+          compatibility:
+              $desc: 旧配置兼容映射
+              mapCoreCensor: 将 ChatLuna 旧的 censor 配置映射到内容安全输出检查。
+              mapSearchSafetyConfig: 将 search-service 旧的安全配置映射到内容安全规则。
+
     - isProxy:
           $desc: 是否启用代理。启用后，ChatLuna 全家桶插件的网络请求将使用此代理。
           $inner:
