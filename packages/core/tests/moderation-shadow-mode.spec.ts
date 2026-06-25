@@ -54,6 +54,15 @@ describe('core moderation shadow-mode integration', () => {
         assert.include(text, '"reviewKeywordGroups":[]')
     })
 
+    it('declares moderation as an optional entrypoint dependency', () => {
+        const text = readFileSync(
+            path.resolve(__dirname, '../src/index.ts'),
+            'utf8'
+        )
+
+        assert.include(text, 'moderation: { required: false }')
+    })
+
     it('registers moderation service and chatluna moderation commands from core', async () => {
         const app = new Context()
         app.plugin(memory)
