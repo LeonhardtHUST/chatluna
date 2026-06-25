@@ -1,7 +1,8 @@
 import {
     DEFAULT_MODERATION_CONFIG,
     ModerationConfig,
-    ModerationKeywordGroup
+    ModerationKeywordGroup,
+    splitKeywords
 } from '../config'
 
 interface SearchKeywordGroup {
@@ -18,6 +19,13 @@ interface SearchConfig {
 
 interface Logger {
     warn(msg: string): void
+}
+
+export interface ServiceSearchSafetyConfig {
+    replySafetyCheckFails?: string
+    safetyBlockKeywordGroups: ModerationKeywordGroup[]
+    safetyRecheckKeywordGroups: ModerationKeywordGroup[]
+    promptAttackWarning: string
 }
 
 const warned = new Set<string>()
@@ -37,12 +45,16 @@ function groups(items: SearchKeywordGroup[] = []): ModerationKeywordGroup[] {
     return items
         .map((group) => ({
             name: group.name,
-            keywords: group.keywords
-                .split(/[,，\r\n]+/)
-                .map((keyword) => keyword.trim())
-                .filter((keyword) => keyword.length > 0)
+            keywords: splitKeywords(group.keywords)
         }))
         .filter((group) => group.keywords.length > 0)
+}
+
+function sameGroups(
+    left: ModerationKeywordGroup[],
+    right: ModerationKeywordGroup[]
+) {
+    return JSON.stringify(left) === JSON.stringify(right)
 }
 
 export function applyServiceSearchCompatibility(
@@ -57,7 +69,9 @@ export function applyServiceSearchCompatibility(
     if (
         moderation.enforcement.fixedBlockReply ===
             DEFAULT_MODERATION_CONFIG.enforcement.fixedBlockReply &&
-        config.replySafetyCheckFails?.trim()
+        config.replySafetyCheckFails?.trim() &&
+        config.replySafetyCheckFails !==
+            DEFAULT_MODERATION_CONFIG.enforcement.fixedBlockReply
     ) {
         warn(
             logger,
@@ -67,37 +81,57 @@ export function applyServiceSearchCompatibility(
         moderation.enforcement.fixedBlockReply = config.replySafetyCheckFails
     }
 
+    const blockGroups = groups(config.safetyBlockKeywordGroups)
+
     if (
-        moderation.rules.blockKeywordGroups.length < 1 &&
-        config.safetyBlockKeywordGroups?.length
+        (moderation.rules.blockKeywordGroups.length < 1 ||
+            sameGroups(
+                moderation.rules.blockKeywordGroups,
+                DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups
+            )) &&
+        blockGroups.length > 0 &&
+        !sameGroups(
+            blockGroups,
+            DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups
+        )
     ) {
         warn(
             logger,
             'safetyBlockKeywordGroups',
             'moderation.rules.blockKeywordGroups'
         )
-        moderation.rules.blockKeywordGroups = groups(
-            config.safetyBlockKeywordGroups
-        )
+        moderation.rules.blockKeywordGroups = blockGroups
     }
 
+    const reviewGroups = groups(config.safetyRecheckKeywordGroups)
+
     if (
-        moderation.rules.reviewKeywordGroups.length < 1 &&
-        config.safetyRecheckKeywordGroups?.length
+        (moderation.rules.reviewKeywordGroups.length < 1 ||
+            sameGroups(
+                moderation.rules.reviewKeywordGroups,
+                DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups
+            )) &&
+        reviewGroups.length > 0 &&
+        !sameGroups(
+            reviewGroups,
+            DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups
+        )
     ) {
         warn(
             logger,
             'safetyRecheckKeywordGroups',
             'moderation.rules.reviewKeywordGroups'
         )
-        moderation.rules.reviewKeywordGroups = groups(
-            config.safetyRecheckKeywordGroups
-        )
+        moderation.rules.reviewKeywordGroups = reviewGroups
     }
 
     if (
-        moderation.rules.promptAttackWarning.length < 1 &&
-        config.promptAttackWarning?.trim()
+        (moderation.rules.promptAttackWarning.length < 1 ||
+            moderation.rules.promptAttackWarning ===
+                DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning) &&
+        config.promptAttackWarning?.trim() &&
+        config.promptAttackWarning !==
+            DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning
     ) {
         warn(
             logger,
@@ -105,5 +139,31 @@ export function applyServiceSearchCompatibility(
             'moderation.rules.promptAttackWarning'
         )
         moderation.rules.promptAttackWarning = config.promptAttackWarning
+    }
+}
+
+export function serviceSearchSafetyConfig(
+    moderation: ModerationConfig | undefined,
+    config: SearchConfig
+): ServiceSearchSafetyConfig {
+    if (moderation?.enabled) {
+        return {
+            replySafetyCheckFails:
+                moderation.enforcement.fixedBlockReply ||
+                config.replySafetyCheckFails,
+            safetyBlockKeywordGroups: moderation.rules.blockKeywordGroups,
+            safetyRecheckKeywordGroups: moderation.rules.reviewKeywordGroups,
+            promptAttackWarning:
+                moderation.rules.promptAttackWarning ||
+                config.promptAttackWarning ||
+                ''
+        }
+    }
+
+    return {
+        replySafetyCheckFails: config.replySafetyCheckFails,
+        safetyBlockKeywordGroups: groups(config.safetyBlockKeywordGroups),
+        safetyRecheckKeywordGroups: groups(config.safetyRecheckKeywordGroups),
+        promptAttackWarning: config.promptAttackWarning ?? ''
     }
 }

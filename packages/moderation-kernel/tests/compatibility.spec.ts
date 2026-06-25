@@ -1,7 +1,9 @@
 import { assert } from 'chai'
 import {
     applyServiceSearchCompatibility,
+    DEFAULT_MODERATION_CONFIG,
     DEFAULT_BLOCK_REPLY,
+    serviceSearchSafetyConfig,
     shouldUseCoreOutputModeration
 } from '../src'
 import { cfg, createService, session } from './service.spec'
@@ -147,5 +149,113 @@ describe('moderation compatibility mapping', () => {
             }
         ])
         assert.equal(config.rules.promptAttackWarning, 'explicit warning')
+    })
+
+    it('uses moderation as the effective service-search safety source', () => {
+        const config = cfg({
+            enforcement: {
+                fixedBlockReply: 'moderation reply'
+            },
+            rules: {
+                blockKeywordGroups: [
+                    {
+                        name: 'moderation-block',
+                        keywords: ['moderation keyword']
+                    }
+                ],
+                reviewKeywordGroups: [
+                    {
+                        name: 'moderation-review',
+                        keywords: ['moderation review']
+                    }
+                ],
+                promptAttackWarning: 'moderation warning'
+            }
+        })
+        const safety = serviceSearchSafetyConfig(config, {
+            replySafetyCheckFails: 'legacy reply',
+            safetyBlockKeywordGroups: [
+                {
+                    name: 'legacy-block',
+                    keywords: 'legacy keyword'
+                }
+            ],
+            safetyRecheckKeywordGroups: [
+                {
+                    name: 'legacy-review',
+                    keywords: 'legacy review'
+                }
+            ],
+            promptAttackWarning: 'legacy warning'
+        })
+
+        assert.equal(safety.replySafetyCheckFails, 'moderation reply')
+        assert.deepEqual(safety.safetyBlockKeywordGroups, [
+            {
+                name: 'moderation-block',
+                keywords: ['moderation keyword']
+            }
+        ])
+        assert.deepEqual(safety.safetyRecheckKeywordGroups, [
+            {
+                name: 'moderation-review',
+                keywords: ['moderation review']
+            }
+        ])
+        assert.equal(safety.promptAttackWarning, 'moderation warning')
+    })
+
+    it('falls back to legacy service-search safety when moderation is disabled', () => {
+        const safety = serviceSearchSafetyConfig(
+            cfg({
+                enabled: false
+            }),
+            {
+                replySafetyCheckFails: 'legacy reply',
+                safetyBlockKeywordGroups: [
+                    {
+                        name: 'legacy-block',
+                        keywords: 'alpha,beta'
+                    }
+                ],
+                safetyRecheckKeywordGroups: [
+                    {
+                        name: 'legacy-review',
+                        keywords: 'gamma,delta'
+                    }
+                ],
+                promptAttackWarning: 'legacy warning'
+            }
+        )
+
+        assert.equal(safety.replySafetyCheckFails, 'legacy reply')
+        assert.deepEqual(safety.safetyBlockKeywordGroups, [
+            {
+                name: 'legacy-block',
+                keywords: ['alpha', 'beta']
+            }
+        ])
+        assert.deepEqual(safety.safetyRecheckKeywordGroups, [
+            {
+                name: 'legacy-review',
+                keywords: ['gamma', 'delta']
+            }
+        ])
+        assert.equal(safety.promptAttackWarning, 'legacy warning')
+    })
+
+    it('ships default moderation keyword groups and prompt warning', () => {
+        assert.isAbove(
+            DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups.length,
+            0
+        )
+        assert.isAbove(
+            DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups.length,
+            0
+        )
+        assert.include(
+            DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning,
+            'Security boundary'
+        )
     })
 })

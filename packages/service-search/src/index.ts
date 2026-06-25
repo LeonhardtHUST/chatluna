@@ -23,7 +23,10 @@ import { SummaryType } from './types'
 import { computed } from 'koishi-plugin-chatluna'
 import { BrowserManager } from './tools/browser/manager'
 import { registerBrowserTools } from './tools/browser/tools'
-import { applyServiceSearchCompatibility } from 'moderation-kernel'
+import {
+    applyServiceSearchCompatibility,
+    serviceSearchSafetyConfig
+} from 'moderation-kernel'
 
 export { Config } from './config'
 
@@ -142,6 +145,22 @@ export function apply(ctx: Context, config: Config) {
                     )
 
                     const model = params.model
+                    const safety = serviceSearchSafetyConfig(
+                        ctx.moderation?.config,
+                        config
+                    )
+                    const blockGroups = safety.safetyBlockKeywordGroups.map(
+                        (group) => ({
+                            name: group.name,
+                            keywords: group.keywords.join(',')
+                        })
+                    )
+                    const reviewGroups = safety.safetyRecheckKeywordGroups.map(
+                        (group) => ({
+                            name: group.name,
+                            keywords: group.keywords.join(',')
+                        })
+                    )
                     const options = {
                         preset: params.preset,
                         botName: params.botName,
@@ -161,24 +180,24 @@ export function apply(ctx: Context, config: Config) {
                                 ? config.contextualCompressionPrompt
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,
-                        replySafetyCheckFails: config.replySafetyCheckFails,
-                        safetyBlockKeywordGroups:
-                            config.safetyBlockKeywordGroups.map((group) => ({
+                        replySafetyCheckFails: safety.replySafetyCheckFails,
+                        safetyBlockKeywordGroups: blockGroups.map((group) => ({
+                            name: group.name,
+                            keywords: group.keywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0)
+                        })),
+                        safetyRecheckKeywordGroups: reviewGroups.map(
+                            (group) => ({
                                 name: group.name,
                                 keywords: group.keywords
                                     .split(/[,，\r\n]+/)
                                     .map((keyword) => keyword.trim())
                                     .filter((keyword) => keyword.length > 0)
-                            })),
-                        safetyRecheckKeywordGroups:
-                            config.safetyRecheckKeywordGroups.map((group) => ({
-                                name: group.name,
-                                keywords: group.keywords
-                                    .split(/[,，\r\n]+/)
-                                    .map((keyword) => keyword.trim())
-                                    .filter((keyword) => keyword.length > 0)
-                            })),
-                        promptAttackWarning: config.promptAttackWarning,
+                            })
+                        ),
+                        promptAttackWarning: safety.promptAttackWarning,
                         searchTriggerKeywords: config.searchTriggerKeywords
                             .split(/[,，\r\n]+/)
                             .map((keyword) => keyword.trim())

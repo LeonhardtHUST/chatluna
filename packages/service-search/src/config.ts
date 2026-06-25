@@ -339,7 +339,8 @@ export const Config: Schema<Config> = Schema.intersect([
         replySafetyCheckFails: Schema.string()
             .role('textarea')
             .default('')
-            .description('Fixed reply when safety blocking is triggered.'),
+            .description('Fixed reply when safety blocking is triggered.')
+            .hidden(),
         safetyBlockKeywordGroups: Schema.array(
             Schema.object({
                 name: Schema.string().default(''),
@@ -352,7 +353,8 @@ export const Config: Schema<Config> = Schema.intersect([
             .default(DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS)
             .description(
                 'Hard-block keyword groups that block browsing/search before query generation. Separate keywords with half-width commas in each group.'
-            ),
+            )
+            .hidden(),
         safetyRecheckKeywordGroups: Schema.array(
             Schema.object({
                 name: Schema.string().default(''),
@@ -365,13 +367,15 @@ export const Config: Schema<Config> = Schema.intersect([
             .default(DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS)
             .description(
                 'Soft-review keyword groups. Matching inputs must be reviewed by the router before search or URL browsing.'
-            ),
+            )
+            .hidden(),
         promptAttackWarning: Schema.string()
             .role('textarea', { rows: [5, 12] })
             .default(DEFAULT_PROMPT_ATTACK_WARNING)
             .description(
                 'Security wrapper inserted around the router question payload to resist prompt injection.'
-            ),
+            )
+            .hidden(),
         searchTriggerKeywords: Schema.string()
             .role('textarea', { rows: [3, 8] })
             .default(DEFAULT_SEARCH_TRIGGER_KEYWORDS)
