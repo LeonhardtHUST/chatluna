@@ -9,10 +9,6 @@ import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
     apply as configApply,
-    DEFAULT_PROMPT_ATTACK_WARNING,
-    DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS,
-    DEFAULT_SAFETY_BLOCK_KEYWORDS,
-    DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS,
     DEFAULT_SEARCH_TRIGGER_KEYWORDS
 } from './config'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
@@ -34,23 +30,17 @@ export let logger: Logger
 
 export function apply(ctx: Context, config: Config) {
     logger = createLogger(ctx, 'chatluna-search-service')
-    if (
-        config.safetyBlockKeywordGroups == null ||
-        config.safetyBlockKeywordGroups.length < 1
-    ) {
+    if (config.safetyBlockKeywordGroups == null) {
         const legacy = Array.isArray(config.safetyBlockKeywords)
             ? config.safetyBlockKeywords.join(',')
             : config.safetyBlockKeywords
 
         config.safetyBlockKeywordGroups =
-            legacy?.trim().length > 0 &&
-            legacy !== DEFAULT_SAFETY_BLOCK_KEYWORDS.join(',')
+            legacy?.trim().length > 0
                 ? [{ name: 'Legacy', keywords: legacy }]
-                : DEFAULT_SAFETY_BLOCK_KEYWORD_GROUPS
+                : []
     }
 
-    config.safetyRecheckKeywordGroups ??= DEFAULT_SAFETY_RECHECK_KEYWORD_GROUPS
-    config.promptAttackWarning ??= DEFAULT_PROMPT_ATTACK_WARNING
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
 
     if (ctx.moderation?.config) {

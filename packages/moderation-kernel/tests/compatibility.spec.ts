@@ -244,6 +244,27 @@ describe('moderation compatibility mapping', () => {
         assert.equal(safety.promptAttackWarning, 'legacy warning')
     })
 
+    it('uses moderation defaults when legacy service-search safety is absent', () => {
+        const safety = serviceSearchSafetyConfig(undefined, {})
+
+        assert.equal(
+            safety.replySafetyCheckFails,
+            DEFAULT_MODERATION_CONFIG.enforcement.fixedBlockReply
+        )
+        assert.deepEqual(
+            safety.safetyBlockKeywordGroups,
+            DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups
+        )
+        assert.deepEqual(
+            safety.safetyRecheckKeywordGroups,
+            DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups
+        )
+        assert.equal(
+            safety.promptAttackWarning,
+            DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning
+        )
+    })
+
     it('ships default moderation keyword groups and prompt warning', () => {
         assert.isAbove(
             DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups.length,

@@ -1,6 +1,7 @@
 /// <reference types="mocha" />
 
 import { assert } from 'chai'
+import { Config } from '../src/config'
 import { parseSearchAction } from '../src/utils/parse'
 
 describe('service-search moderation router parser', () => {
@@ -59,5 +60,17 @@ describe('service-search moderation router parser', () => {
         assert.equal(action.safety, 'block')
         assert.equal(action.action, 'skip')
         assert.deepEqual(action.content, [])
+    })
+
+    it('keeps legacy safety fields out of the service-search schema', () => {
+        const text = JSON.stringify(
+            (Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.notInclude(text, 'replySafetyCheckFails')
+        assert.notInclude(text, 'safetyBlockKeywordGroups')
+        assert.notInclude(text, 'safetyRecheckKeywordGroups')
+        assert.notInclude(text, 'promptAttackWarning')
+        assert.include(text, 'searchTriggerKeywords')
     })
 })

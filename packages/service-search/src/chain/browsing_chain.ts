@@ -420,20 +420,18 @@ export class ChatLunaBrowsingChain
         )
         const clean = question.clean
         const date = new Date().toISOString().slice(0, 10)
-        let precheck = this._precheck(clean)
+        let precheck: SafetyPrecheck = {
+            safety: 'allow',
+            risk_level: 'low',
+            categories: [],
+            search_allowed: true,
+            url_allowed: true,
+            policy_hint: 'No moderation safety match.'
+        }
+        const moderation = (session.app as ModerationApp).moderation
 
         logger?.debug(`[search-service] raw question: ${input}`)
         logger?.debug(`[search-service] clean question: ${clean}`)
-        logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
-
-        if (precheck.safety === 'block') {
-            logger?.debug(`blocked response: ${precheck.categories.join(',')}`)
-            return {
-                message: safetyBlockMessage(this.replySafetyCheckFails)
-            }
-        }
-
-        const moderation = (session.app as ModerationApp).moderation
 
         if (moderation?.config.enabled && moderation.config.preSearchEnabled) {
             const decision = await moderation.evaluatePreSearch(
@@ -477,7 +475,20 @@ export class ChatLunaBrowsingChain
                     }
                 }
             }
+        } else {
+            precheck = this._precheck(clean)
+
+            if (precheck.safety === 'block') {
+                logger?.debug(
+                    `blocked response: ${precheck.categories.join(',')}`
+                )
+                return {
+                    message: safetyBlockMessage(this.replySafetyCheckFails)
+                }
+            }
         }
+
+        logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
         // recreate questions
 

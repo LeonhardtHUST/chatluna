@@ -160,10 +160,23 @@ export function serviceSearchSafetyConfig(
         }
     }
 
+    const blockGroups = groups(config.safetyBlockKeywordGroups)
+    const reviewGroups = groups(config.safetyRecheckKeywordGroups)
+
     return {
-        replySafetyCheckFails: config.replySafetyCheckFails,
-        safetyBlockKeywordGroups: groups(config.safetyBlockKeywordGroups),
-        safetyRecheckKeywordGroups: groups(config.safetyRecheckKeywordGroups),
-        promptAttackWarning: config.promptAttackWarning ?? ''
+        replySafetyCheckFails:
+            config.replySafetyCheckFails ||
+            DEFAULT_MODERATION_CONFIG.enforcement.fixedBlockReply,
+        safetyBlockKeywordGroups:
+            blockGroups.length > 0
+                ? blockGroups
+                : DEFAULT_MODERATION_CONFIG.rules.blockKeywordGroups,
+        safetyRecheckKeywordGroups:
+            reviewGroups.length > 0
+                ? reviewGroups
+                : DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups,
+        promptAttackWarning:
+            config.promptAttackWarning ||
+            DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning
     }
 }
