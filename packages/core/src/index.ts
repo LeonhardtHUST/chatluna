@@ -8,7 +8,10 @@ import {
 } from 'moderation-kernel'
 import { ChatLunaService } from 'koishi-plugin-chatluna/services/chat'
 import { forkScopeToDisposable } from 'koishi-plugin-chatluna/utils/koishi'
-import { callChatLunaChain, ChatLunaLLMChain } from './llm-core/chain/base'
+import {
+    callChatLunaChain,
+    ChatLunaLLMChain
+} from 'koishi-plugin-chatluna/llm-core/chain/base'
 import {
     clearLogger,
     createLogger,
