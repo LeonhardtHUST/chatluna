@@ -39,6 +39,11 @@ import { getMessageContent } from 'koishi-plugin-chatluna/utils/string'
 import { ChatLunaPromptRenderService } from 'koishi-plugin-chatluna/services/chat'
 import { ComputedRef, Ref } from 'koishi-plugin-chatluna'
 import { BrowserManager } from '../tools/browser/manager'
+import {
+    type KeywordRule,
+    matchKeywordRule,
+    normalizeKeywordText
+} from 'moderation-kernel'
 
 // github.com/langchain-ai/weblangchain/blob/main/nextjs/app/api/chat/stream_log/route.ts#L81
 
@@ -305,18 +310,31 @@ export class ChatLunaBrowsingChain
         }) as T
     }
 
-    private _findKeywordHit(input: string, groups: SafetyKeywordGroup[]) {
-        const lower = input.toLocaleLowerCase()
-
+    private _findKeywordHit(
+        input: string,
+        groups: SafetyKeywordGroup[],
+        action: 'block' | 'review'
+    ) {
         for (const group of groups) {
-            const keyword = group.keywords.find((word) =>
-                lower.includes(word.toLocaleLowerCase())
-            )
+            for (const keyword of group.keywords) {
+                const match = matchKeywordRule(
+                    {
+                        id: `service-search.${group.name}.${keyword}`,
+                        keyword: normalizeKeywordText(keyword),
+                        labels: [group.name],
+                        severity: action === 'block' ? 5 : 2,
+                        confidence: action === 'block' ? 1 : 0.6,
+                        action
+                    } satisfies KeywordRule,
+                    input
+                )
 
-            if (keyword != null) {
-                return {
-                    category: group.name,
-                    keyword
+                if (match != null) {
+                    return {
+                        category: group.name,
+                        keyword,
+                        action: match.action
+                    }
                 }
             }
         }
@@ -340,9 +358,13 @@ export class ChatLunaBrowsingChain
             }
         }
 
-        const block = this._findKeywordHit(input, this.safetyBlockKeywordGroups)
+        const block = this._findKeywordHit(
+            input,
+            this.safetyBlockKeywordGroups,
+            'block'
+        )
 
-        if (block != null) {
+        if (block?.action === 'block') {
             return {
                 safety: 'block',
                 risk_level: 'high',
@@ -355,9 +377,23 @@ export class ChatLunaBrowsingChain
             }
         }
 
+        if (block?.action === 'review') {
+            return {
+                safety: 'recheck',
+                risk_level: 'medium',
+                categories: [block.category],
+                matched_rule: block.keyword,
+                search_allowed: false,
+                url_allowed: false,
+                policy_hint:
+                    'Short keyword candidate requires review before routing.'
+            }
+        }
+
         const recheck = this._findKeywordHit(
             input,
-            this.safetyRecheckKeywordGroups
+            this.safetyRecheckKeywordGroups,
+            'review'
         )
 
         if (recheck != null) {
@@ -556,9 +592,13 @@ export class ChatLunaBrowsingChain
         if (Array.isArray(action?.content)) {
             const queryHit = action.content
                 .map((item) =>
-                    this._findKeywordHit(item, this.safetyBlockKeywordGroups)
+                    this._findKeywordHit(
+                        item,
+                        this.safetyBlockKeywordGroups,
+                        'block'
+                    )
                 )
-                .find((hit) => hit != null)
+                .find((hit) => hit?.action === 'block')
 
             if (queryHit) {
                 logger?.debug(

@@ -1,6 +1,7 @@
 /// <reference types="mocha" />
 
 import { assert } from 'chai'
+import { readFileSync } from 'fs'
 import { Config } from '../src/config'
 import { parseSearchAction } from '../src/utils/parse'
 
@@ -72,5 +73,16 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(text, 'safetyRecheckKeywordGroups')
         assert.notInclude(text, 'promptAttackWarning')
         assert.include(text, 'searchTriggerKeywords')
+    })
+
+    it('uses moderation keyword matcher for service-search safety fallback', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, 'matchKeywordRule')
+        assert.notInclude(source, 'lower.includes')
+        assert.include(source, "hit?.action === 'block'")
     })
 })

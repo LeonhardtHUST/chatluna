@@ -6,7 +6,7 @@ import type {
 } from '../types'
 import { normalizeDecision } from '../types'
 import { addSeverityScore, clampRiskScore } from './scoring'
-import { DEFAULT_KEYWORD_RULES, KeywordRule } from './rules'
+import { DEFAULT_KEYWORD_RULES, KeywordRule, matchKeywordRule } from './rules'
 
 export function evaluateLocalRules(
     req: ModerationRequest,
@@ -14,24 +14,39 @@ export function evaluateLocalRules(
     rules: KeywordRule[] = DEFAULT_KEYWORD_RULES
 ): ModerationDecision {
     const text = req.contentText ?? ''
-    const rule = rules.find((item) => item.pattern.test(text))
+    const match = rules
+        .map((item) => matchKeywordRule(item, text))
+        .filter((item) => item != null)
+        .sort((left, right) => {
+            const score = {
+                block: 4,
+                suspend: 3,
+                review: 2,
+                rewrite: 1,
+                allow: 0
+            }
 
-    if (!rule) {
+            return score[right.action] - score[left.action]
+        })[0]
+
+    if (!match) {
         return normalizeDecision({
             ...DEFAULT_ALLOW_DECISION,
             riskScore: clampRiskScore(state.trustScore)
         })
     }
 
-    const riskScore = addSeverityScore(state.trustScore, rule.severity)
+    const rule = match.rule
+    const severity = match.action === 'review' ? 2 : rule.severity
+    const riskScore = addSeverityScore(state.trustScore, severity)
 
     return normalizeDecision({
-        action: rule.action,
+        action: match.action,
         labels: rule.labels,
         reasons: [rule.id],
-        confidence: rule.confidence,
-        severity: rule.severity,
+        confidence: match.action === 'review' ? 0.6 : rule.confidence,
+        severity,
         riskScore,
-        fixedReply: rule.action === 'block' ? DEFAULT_BLOCK_REPLY : undefined
+        fixedReply: match.action === 'block' ? DEFAULT_BLOCK_REPLY : undefined
     })
 }

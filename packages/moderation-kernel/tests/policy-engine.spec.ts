@@ -1,5 +1,5 @@
 import { assert } from 'chai'
-import { evaluateLocalRules } from '../src'
+import { evaluateLocalRules, keywordGroupRules } from '../src'
 import type { UserRiskState } from '../src'
 
 const state: UserRiskState = {
@@ -82,5 +82,162 @@ describe('moderation policy engine', () => {
 
         assert.equal(decision.action, 'allow')
         assert.equal(decision.riskScore, 0)
+    })
+
+    it('blocks long exact keyword phrases', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '有人喊打倒中共'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'politics',
+                        keywords: ['打倒中共']
+                    }
+                ],
+                'block'
+            )
+        )
+
+        assert.equal(decision.action, 'block')
+        assert.deepEqual(decision.labels, ['politics'])
+    })
+
+    it('downgrades bare two-character block keywords to review', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '中共'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'politics',
+                        keywords: ['中共']
+                    }
+                ],
+                'block'
+            )
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.equal(decision.severity, 2)
+    })
+
+    it('blocks short keywords with high-risk context', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '支持台独势力'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'politics',
+                        keywords: ['台独']
+                    }
+                ],
+                'block'
+            )
+        )
+
+        assert.equal(decision.action, 'block')
+    })
+
+    it('ignores common embedded short keyword false positives', () => {
+        const rules = keywordGroupRules(
+            [
+                {
+                    name: 'politics',
+                    keywords: ['中共', '法轮', '东突', '台独']
+                }
+            ],
+            'block'
+        )
+        const samples = [
+            '这些样本中共有三个',
+            '中共有哪些普通误写样本',
+            '法轮盘结构',
+            '东突发新闻',
+            '港台独服活动'
+        ]
+
+        for (const sample of samples) {
+            const decision = evaluateLocalRules(
+                {
+                    stage: 'input',
+                    userKey: 'user-1',
+                    contentText: sample
+                },
+                state,
+                rules
+            )
+
+            assert.equal(decision.action, 'allow', sample)
+        }
+    })
+
+    it('keeps short review keywords as review', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '民运'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'context',
+                        keywords: ['民运']
+                    }
+                ],
+                'review'
+            )
+        )
+
+        assert.equal(decision.action, 'review')
+    })
+
+    it('prefers block over review when multiple keyword rules match', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '民运 打倒中共'
+            },
+            state,
+            [
+                ...keywordGroupRules(
+                    [
+                        {
+                            name: 'review',
+                            keywords: ['民运']
+                        }
+                    ],
+                    'review'
+                ),
+                ...keywordGroupRules(
+                    [
+                        {
+                            name: 'block',
+                            keywords: ['打倒中共']
+                        }
+                    ],
+                    'block'
+                )
+            ]
+        )
+
+        assert.equal(decision.action, 'block')
+        assert.deepEqual(decision.labels, ['block'])
     })
 })
