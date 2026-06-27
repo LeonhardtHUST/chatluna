@@ -9,6 +9,7 @@ describe('moderation-kernel exports', () => {
     it('exports default config and service', () => {
         assert.equal(DEFAULT_MODERATION_CONFIG.enabled, true)
         assert.equal(DEFAULT_MODERATION_CONFIG.shadowMode, true)
+        assert.equal(DEFAULT_MODERATION_CONFIG.backend.recheckModel, '')
         assert.equal(DEFAULT_ALLOW_DECISION.action, 'allow')
         assert.equal(typeof ModerationService, 'function')
     })

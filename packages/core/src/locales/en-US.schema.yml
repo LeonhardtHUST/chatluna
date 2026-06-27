@@ -80,7 +80,8 @@ $inner:
               $desc: Moderation backends
               useKoishiCensor: Reuse Koishi censor service for output text transformation when available.
               useKeywordRules: Enable deterministic local keyword and policy rules.
-              useLlmRecheck: Enable future LLM-based secondary review. Currently kept disabled by default.
+              useLlmRecheck: Enable LLM secondary review for review decisions. Disabled by default.
+              recheckModel: LLM secondary review model. Leave empty to use the ChatLuna default model.
           storage:
               $desc: Moderation storage and privacy
               storeRawTextForAppeal: Store raw evidence text for appeal review. Disabled by default for privacy.

@@ -10,6 +10,7 @@ import { ModerationRepository } from './storage/repository'
 import type {
     ModerationAction,
     ModerationDecision,
+    ModerationLlmRecheckBackend,
     ModerationRequest,
     UserRiskState
 } from './types'
@@ -44,6 +45,7 @@ export class ModerationService extends Service {
     static inject = ['database']
 
     public readonly repository: ModerationRepository
+    private _llmRecheckBackend?: ModerationLlmRecheckBackend
 
     constructor(
         public readonly ctx: Context,
@@ -53,6 +55,14 @@ export class ModerationService extends Service {
         defineModerationModels(ctx)
         this.repository = new ModerationRepository(ctx, config)
         applyAdminCommands(ctx, this)
+    }
+
+    registerLlmRecheckBackend(backend: ModerationLlmRecheckBackend) {
+        this._llmRecheckBackend = backend
+    }
+
+    clearLlmRecheckBackend() {
+        this._llmRecheckBackend = undefined
     }
 
     async evaluate(req: ModerationRequest): Promise<ModerationDecision> {
@@ -80,9 +90,10 @@ export class ModerationService extends Service {
             shadowMode: this.config.shadowMode
         })
 
-        const event = await this.recordEvent(req, decision)
+        const checked = await this._recheck(req, decision)
+        const event = await this.recordEvent(req, checked)
         const result = normalizeDecision({
-            ...decision,
+            ...checked,
             eventId: event.id
         })
 
@@ -119,6 +130,84 @@ export class ModerationService extends Service {
         }
 
         return result
+    }
+
+    private async _recheck(
+        req: ModerationRequest,
+        decision: ModerationDecision
+    ) {
+        if (
+            decision.action !== 'review' ||
+            !this.config.backend.useLlmRecheck ||
+            this.config.enforcement.maxRechecksPerRequest < 1 ||
+            this._llmRecheckBackend == null
+        ) {
+            return decision
+        }
+
+        try {
+            const raw = await this._llmRecheckBackend({
+                request: req,
+                decision
+            })
+
+            if (
+                raw == null ||
+                raw.action == null ||
+                (raw.action !== 'allow' &&
+                    raw.action !== 'review' &&
+                    raw.action !== 'block')
+            ) {
+                return normalizeDecision({
+                    ...decision,
+                    reasons: [...decision.reasons, 'llm_recheck_failed']
+                })
+            }
+
+            const checked = normalizeDecision(raw)
+
+            const result = normalizeDecision({
+                ...decision,
+                ...checked,
+                labels:
+                    checked.labels.length > 0
+                        ? checked.labels
+                        : decision.labels,
+                reasons: [
+                    ...decision.reasons,
+                    ...checked.reasons,
+                    `llm_recheck.${checked.action}`
+                ],
+                riskScore: Math.max(decision.riskScore, checked.riskScore),
+                severity: Math.min(
+                    5,
+                    Math.max(decision.severity, checked.severity)
+                ) as ModerationDecision['severity']
+            })
+
+            logModerationEvent(this.ctx, 'moderation.recheck', req, result, {
+                shadowMode: this.config.shadowMode
+            })
+
+            return result
+        } catch {
+            const result = normalizeDecision({
+                ...decision,
+                reasons: [...decision.reasons, 'llm_recheck_failed']
+            })
+
+            logModerationEvent(
+                this.ctx,
+                'moderation.recheck_failed',
+                req,
+                result,
+                {
+                    shadowMode: this.config.shadowMode
+                }
+            )
+
+            return result
+        }
     }
 
     evaluateInput(

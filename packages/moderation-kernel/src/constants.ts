@@ -27,6 +27,8 @@ export const MODERATION_LOG_EVENTS = [
     'moderation.shadow_mismatch',
     'moderation.block',
     'moderation.review',
+    'moderation.recheck',
+    'moderation.recheck_failed',
     'moderation.storage_failure',
     'moderation.retention_purge',
     'moderation.override'

@@ -144,6 +144,238 @@ describe('moderation service', () => {
         assert.deepEqual(stages, ['input', 'pre-search', 'output'])
         await app.stop()
     })
+
+    it('keeps review decisions unchanged when llm recheck is disabled', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false
+            })
+        )
+        let calls = 0
+
+        service.registerLlmRecheckBackend(async () => {
+            calls += 1
+            return {
+                action: 'allow'
+            }
+        })
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.equal(calls, 0)
+        await app.stop()
+    })
+
+    it('allows review decisions after llm recheck allow', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => ({
+            action: 'allow',
+            confidence: 0.9,
+            severity: 0,
+            riskScore: 0,
+            reasons: ['safe_context']
+        }))
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'allow')
+        assert.include(decision.reasons, 'llm_recheck.allow')
+        await app.stop()
+    })
+
+    it('blocks review decisions after llm recheck block', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => ({
+            action: 'block',
+            labels: ['llm_block'],
+            confidence: 0.95,
+            severity: 5,
+            riskScore: 80,
+            reasons: ['unsafe_context']
+        }))
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+        const event = await service.repository.getEvent(decision.eventId!)
+
+        assert.equal(decision.action, 'block')
+        assert.deepEqual(decision.labels, ['llm_block'])
+        assert.include(decision.reasons, 'llm_recheck.block')
+        assert.equal(event?.action, 'block')
+        await app.stop()
+    })
+
+    it('keeps review decisions when llm recheck returns review', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => ({
+            action: 'review',
+            confidence: 0.7,
+            severity: 2,
+            riskScore: 20,
+            reasons: ['still_ambiguous']
+        }))
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.include(decision.reasons, 'llm_recheck.review')
+        await app.stop()
+    })
+
+    it('keeps review decisions when llm recheck fails', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => {
+            throw new Error('failed')
+        })
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.include(decision.reasons, 'llm_recheck_failed')
+        await app.stop()
+    })
+
+    it('keeps review decisions when llm recheck returns empty output', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => undefined)
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.include(decision.reasons, 'llm_recheck_failed')
+        await app.stop()
+    })
+
+    it('does not call llm recheck when max rechecks is zero', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                },
+                enforcement: {
+                    fixedBlockReply:
+                        DEFAULT_MODERATION_CONFIG.enforcement.fixedBlockReply,
+                    maxRechecksPerRequest: 0
+                }
+            })
+        )
+        let calls = 0
+
+        service.registerLlmRecheckBackend(async () => {
+            calls += 1
+            return {
+                action: 'allow'
+            }
+        })
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+
+        assert.equal(decision.action, 'review')
+        assert.equal(calls, 0)
+        await app.stop()
+    })
+
+    it('records shadow llm block but returns allow', async () => {
+        const { app, service } = await createService(
+            cfg({
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+
+        service.registerLlmRecheckBackend(async () => ({
+            action: 'block',
+            confidence: 0.95,
+            severity: 5,
+            riskScore: 80
+        }))
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-review-test'
+        )
+        const event = await service.repository.getEvent(decision.eventId!)
+
+        assert.equal(decision.action, 'allow')
+        assert.equal(event?.action, 'block')
+        await app.stop()
+    })
 })
 
 export { cfg, createService, session }

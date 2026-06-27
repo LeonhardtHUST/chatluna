@@ -53,6 +53,15 @@ export interface UserRiskState {
     lastEventAt?: number
 }
 
+export interface ModerationLlmRecheckRequest {
+    request: ModerationRequest
+    decision: ModerationDecision
+}
+
+export type ModerationLlmRecheckBackend = (
+    req: ModerationLlmRecheckRequest
+) => Promise<Partial<ModerationDecision> | undefined>
+
 export function isBlockingDecision(decision: ModerationDecision) {
     return decision.action === 'block' || decision.action === 'suspend'
 }

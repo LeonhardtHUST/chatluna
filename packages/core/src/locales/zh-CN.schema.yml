@@ -81,7 +81,8 @@ $inner:
               $desc: 审核后端
               useKoishiCensor: 可用时复用 Koishi censor 服务处理输出文本转换。
               useKeywordRules: 启用本地确定性关键词和策略规则。
-              useLlmRecheck: 启用未来的 LLM 二次复核。默认关闭。
+              useLlmRecheck: 对复核决策启用 LLM 二次判断。默认关闭。
+              recheckModel: LLM 二次复核模型。留空时使用 ChatLuna 默认模型。
           storage:
               $desc: 存储与隐私
               storeRawTextForAppeal: 为申诉复核保存原始证据文本。出于隐私考虑默认关闭。

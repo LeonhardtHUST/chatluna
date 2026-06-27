@@ -52,6 +52,7 @@ describe('core moderation shadow-mode integration', () => {
 
         assert.include(text, '"blockKeywordGroups":[]')
         assert.include(text, '"reviewKeywordGroups":[]')
+        assert.include(text, '"recheckModel":""')
     })
 
     it('declares moderation as an optional entrypoint dependency', () => {
@@ -61,6 +62,34 @@ describe('core moderation shadow-mode integration', () => {
         )
 
         assert.include(text, 'moderation: { required: false }')
+    })
+
+    it('registers llm recheck with explicit model fallback order', () => {
+        const text = readFileSync(
+            path.resolve(__dirname, '../src/index.ts'),
+            'utf8'
+        )
+
+        assert.include(text, 'registerLlmRecheckBackend')
+        assert.include(text, 'moderation.backend.recheckModel')
+        assert.include(text, ': config.defaultModel')
+    })
+
+    it('keeps llm recheck prompt free of keyword rule details', () => {
+        const text = readFileSync(
+            path.resolve(__dirname, '../src/index.ts'),
+            'utf8'
+        )
+        const prompt = text.slice(
+            text.indexOf('const RECHECK_PROMPT'),
+            text.indexOf('export function apply')
+        )
+
+        assert.exists(prompt)
+        assert.notInclude(prompt, 'blockKeywordGroups')
+        assert.notInclude(prompt, 'reviewKeywordGroups')
+        assert.notInclude(prompt, 'keyword')
+        assert.include(prompt, 'Return JSON only.')
     })
 
     it('registers moderation service and chatluna moderation commands from core', async () => {

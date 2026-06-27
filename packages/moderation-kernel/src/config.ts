@@ -13,6 +13,7 @@ export interface ModerationConfig {
         useKoishiCensor: boolean
         useKeywordRules: boolean
         useLlmRecheck: boolean
+        recheckModel: string
     }
 
     storage: {
@@ -154,7 +155,8 @@ export const DEFAULT_MODERATION_CONFIG: ModerationConfig = {
     backend: {
         useKoishiCensor: true,
         useKeywordRules: true,
-        useLlmRecheck: false
+        useLlmRecheck: false,
+        recheckModel: ''
     },
     storage: {
         storeRawTextForAppeal: false,
@@ -198,6 +200,9 @@ export const Config: Schema<ModerationConfig> = Schema.object({
         ),
         useLlmRecheck: Schema.boolean().default(
             DEFAULT_MODERATION_CONFIG.backend.useLlmRecheck
+        ),
+        recheckModel: Schema.dynamic('model').default(
+            DEFAULT_MODERATION_CONFIG.backend.recheckModel
         )
     }).default(DEFAULT_MODERATION_CONFIG.backend),
     storage: Schema.object({
