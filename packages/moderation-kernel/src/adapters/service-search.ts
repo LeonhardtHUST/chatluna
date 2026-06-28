@@ -2,6 +2,7 @@ import {
     DEFAULT_MODERATION_CONFIG,
     ModerationConfig,
     ModerationKeywordGroup,
+    ModerationShortKeywordContextRule,
     splitKeywords
 } from '../config'
 
@@ -25,6 +26,7 @@ export interface ServiceSearchSafetyConfig {
     replySafetyCheckFails?: string
     safetyBlockKeywordGroups: ModerationKeywordGroup[]
     safetyRecheckKeywordGroups: ModerationKeywordGroup[]
+    shortKeywordContextRules: ModerationShortKeywordContextRule[]
     promptAttackWarning: string
 }
 
@@ -153,6 +155,7 @@ export function serviceSearchSafetyConfig(
                 config.replySafetyCheckFails,
             safetyBlockKeywordGroups: moderation.rules.blockKeywordGroups,
             safetyRecheckKeywordGroups: moderation.rules.reviewKeywordGroups,
+            shortKeywordContextRules: moderation.rules.shortKeywordContextRules,
             promptAttackWarning:
                 moderation.rules.promptAttackWarning ||
                 config.promptAttackWarning ||
@@ -175,6 +178,8 @@ export function serviceSearchSafetyConfig(
             reviewGroups.length > 0
                 ? reviewGroups
                 : DEFAULT_MODERATION_CONFIG.rules.reviewKeywordGroups,
+        shortKeywordContextRules:
+            DEFAULT_MODERATION_CONFIG.rules.shortKeywordContextRules,
         promptAttackWarning:
             config.promptAttackWarning ||
             DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning

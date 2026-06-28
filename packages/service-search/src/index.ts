@@ -187,6 +187,8 @@ export function apply(ctx: Context, config: Config) {
                                     .filter((keyword) => keyword.length > 0)
                             })
                         ),
+                        shortKeywordContextRules:
+                            safety.shortKeywordContextRules,
                         promptAttackWarning: safety.promptAttackWarning,
                         searchTriggerKeywords: config.searchTriggerKeywords
                             .split(/[,，\r\n]+/)

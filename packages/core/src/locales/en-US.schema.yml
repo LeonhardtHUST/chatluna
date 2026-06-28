@@ -96,6 +96,13 @@ $inner:
               $desc: Local keyword rules
               blockKeywordGroups: Keyword groups that produce block decisions.
               reviewKeywordGroups: Keyword groups that produce review decisions.
+              shortKeywordContextRules:
+                  $desc: Short keyword context rules. Prevents short terms from being blocked by raw substring matches. Bare short terms can at most enter review unless context rules match.
+                  term: Short keyword term.
+                  blockIfPrecededBy: Upgrade to block when the term is immediately preceded by these words. Separate with half-width commas.
+                  blockIfFollowedBy: Upgrade to block when the term is immediately followed by these words. Separate with half-width commas.
+                  ignoreIfFollowedBy: Ignore the match when the term is immediately followed by these words. Separate with half-width commas.
+                  standaloneAction: Action for standalone short-term matches. Only allow or review is supported; direct block is not allowed.
               promptAttackWarning: Safety warning injected into review prompts to treat prompt-injection text as untrusted user content.
           compatibility:
               $desc: Legacy compatibility mapping

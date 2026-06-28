@@ -52,6 +52,8 @@ describe('core moderation shadow-mode integration', () => {
 
         assert.include(text, '"blockKeywordGroups":[]')
         assert.include(text, '"reviewKeywordGroups":[]')
+        assert.include(text, 'shortKeywordContextRules')
+        assert.include(text, '"term":"中共"')
         assert.include(text, '"recheckModel":""')
     })
 

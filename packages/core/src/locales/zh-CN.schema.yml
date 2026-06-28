@@ -97,6 +97,13 @@ $inner:
               $desc: 本地关键词规则
               blockKeywordGroups: 触发拦截决策的关键词分组。
               reviewKeywordGroups: 触发复核决策的关键词分组。
+              shortKeywordContextRules:
+                  $desc: 短词上下文规则。用于避免短词被简单子串匹配误杀。裸短词最多进入复核，只有命中前后文规则才升级。
+                  term: 短词本体。
+                  blockIfPrecededBy: 若短词前方紧邻这些词，则升级为拦截。使用半角逗号分隔。
+                  blockIfFollowedBy: 若短词后方紧邻这些词，则升级为拦截。使用半角逗号分隔。
+                  ignoreIfFollowedBy: 若短词后方紧邻这些词，则忽略本次命中。使用半角逗号分隔。
+                  standaloneAction: 裸短词命中时的动作。最多允许放行或复核，不允许直接拦截。
               promptAttackWarning: 注入复核提示词的安全提醒，用于把提示词注入内容视为不可信用户文本。
           compatibility:
               $desc: 旧配置兼容映射

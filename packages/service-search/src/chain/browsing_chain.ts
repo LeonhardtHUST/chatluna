@@ -42,6 +42,7 @@ import { BrowserManager } from '../tools/browser/manager'
 import {
     type KeywordRule,
     matchKeywordRule,
+    type ModerationShortKeywordContextRule,
     normalizeKeywordText
 } from 'moderation-kernel'
 
@@ -91,6 +92,7 @@ export interface ChatLunaBrowsingChainInput {
     replySafetyCheckFails?: string
     safetyBlockKeywordGroups: SafetyKeywordGroup[]
     safetyRecheckKeywordGroups: SafetyKeywordGroup[]
+    shortKeywordContextRules: ModerationShortKeywordContextRule[]
     promptAttackWarning: string
     searchTriggerKeywords: string[]
     variableService: ChatLunaPromptRenderService
@@ -145,6 +147,8 @@ export class ChatLunaBrowsingChain
 
     safetyRecheckKeywordGroups: SafetyKeywordGroup[]
 
+    shortKeywordContextRules: ModerationShortKeywordContextRule[]
+
     promptAttackWarning: string
 
     searchTriggerKeywords: string[]
@@ -173,6 +177,7 @@ export class ChatLunaBrowsingChain
         replySafetyCheckFails,
         safetyBlockKeywordGroups,
         safetyRecheckKeywordGroups,
+        shortKeywordContextRules,
         promptAttackWarning,
         searchTriggerKeywords
     }: ChatLunaBrowsingChainInput & {
@@ -199,6 +204,7 @@ export class ChatLunaBrowsingChain
         this.replySafetyCheckFails = replySafetyCheckFails
         this.safetyBlockKeywordGroups = safetyBlockKeywordGroups
         this.safetyRecheckKeywordGroups = safetyRecheckKeywordGroups
+        this.shortKeywordContextRules = shortKeywordContextRules
         this.promptAttackWarning = promptAttackWarning
         this.searchTriggerKeywords = searchTriggerKeywords
         this.variableService = variableService
@@ -232,6 +238,7 @@ export class ChatLunaBrowsingChain
             replySafetyCheckFails,
             safetyBlockKeywordGroups,
             safetyRecheckKeywordGroups,
+            shortKeywordContextRules,
             promptAttackWarning,
             searchTriggerKeywords,
             variableService,
@@ -282,6 +289,7 @@ export class ChatLunaBrowsingChain
             replySafetyCheckFails,
             safetyBlockKeywordGroups,
             safetyRecheckKeywordGroups,
+            shortKeywordContextRules,
             promptAttackWarning,
             searchTriggerKeywords,
             searchPrompt,
@@ -324,7 +332,8 @@ export class ChatLunaBrowsingChain
                         labels: [group.name],
                         severity: action === 'block' ? 5 : 2,
                         confidence: action === 'block' ? 1 : 0.6,
-                        action
+                        action,
+                        shortKeywordContextRules: this.shortKeywordContextRules
                     } satisfies KeywordRule,
                     input
                 )

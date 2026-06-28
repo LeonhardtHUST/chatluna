@@ -77,11 +77,13 @@ export class ModerationService extends Service {
                       ...DEFAULT_KEYWORD_RULES,
                       ...keywordGroupRules(
                           this.config.rules.blockKeywordGroups,
-                          'block'
+                          'block',
+                          this.config.rules.shortKeywordContextRules
                       ),
                       ...keywordGroupRules(
                           this.config.rules.reviewKeywordGroups,
-                          'review'
+                          'review',
+                          this.config.rules.shortKeywordContextRules
                       )
                   ])
                 : DEFAULT_ALLOW_DECISION

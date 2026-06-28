@@ -275,6 +275,12 @@ describe('moderation compatibility mapping', () => {
             []
         )
         assert.include(
+            DEFAULT_MODERATION_CONFIG.rules.shortKeywordContextRules.map(
+                (rule) => rule.term
+            ),
+            '中共'
+        )
+        assert.include(
             DEFAULT_MODERATION_CONFIG.rules.promptAttackWarning,
             'Security boundary'
         )

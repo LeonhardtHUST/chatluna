@@ -84,5 +84,6 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'matchKeywordRule')
         assert.notInclude(source, 'lower.includes')
         assert.include(source, "hit?.action === 'block'")
+        assert.include(source, 'shortKeywordContextRules')
     })
 })

@@ -1,5 +1,9 @@
 import { assert } from 'chai'
-import { evaluateLocalRules, keywordGroupRules } from '../src'
+import {
+    DEFAULT_SHORT_KEYWORD_CONTEXT_RULES,
+    evaluateLocalRules,
+    keywordGroupRules
+} from '../src'
 import type { UserRiskState } from '../src'
 
 const state: UserRiskState = {
@@ -99,7 +103,8 @@ describe('moderation policy engine', () => {
                         keywords: ['打倒中共']
                     }
                 ],
-                'block'
+                'block',
+                DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
             )
         )
 
@@ -122,7 +127,8 @@ describe('moderation policy engine', () => {
                         keywords: ['中共']
                     }
                 ],
-                'block'
+                'block',
+                DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
             )
         )
 
@@ -145,7 +151,8 @@ describe('moderation policy engine', () => {
                         keywords: ['台独']
                     }
                 ],
-                'block'
+                'block',
+                DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
             )
         )
 
@@ -160,7 +167,8 @@ describe('moderation policy engine', () => {
                     keywords: ['中共', '法轮', '东突', '台独']
                 }
             ],
-            'block'
+            'block',
+            DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
         )
         const samples = [
             '这些样本中共有三个',
@@ -200,7 +208,8 @@ describe('moderation policy engine', () => {
                         keywords: ['民运']
                     }
                 ],
-                'review'
+                'review',
+                DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
             )
         )
 
@@ -223,7 +232,8 @@ describe('moderation policy engine', () => {
                             keywords: ['民运']
                         }
                     ],
-                    'review'
+                    'review',
+                    DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
                 ),
                 ...keywordGroupRules(
                     [
@@ -232,12 +242,68 @@ describe('moderation policy engine', () => {
                             keywords: ['打倒中共']
                         }
                     ],
-                    'block'
+                    'block',
+                    DEFAULT_SHORT_KEYWORD_CONTEXT_RULES
                 )
             ]
         )
 
         assert.equal(decision.action, 'block')
         assert.deepEqual(decision.labels, ['block'])
+    })
+
+    it('uses custom short keyword context rules', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '触发短词后缀'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'custom',
+                        keywords: ['短词']
+                    }
+                ],
+                'block',
+                [
+                    {
+                        term: '短词',
+                        blockIfPrecededBy: [],
+                        blockIfFollowedBy: ['后缀'],
+                        ignoreIfFollowedBy: [],
+                        standaloneAction: 'review'
+                    }
+                ]
+            )
+        )
+
+        assert.equal(decision.action, 'block')
+        assert.deepEqual(decision.labels, ['custom'])
+    })
+
+    it('does not restore bare short keyword blocking when context rules are empty', () => {
+        const decision = evaluateLocalRules(
+            {
+                stage: 'input',
+                userKey: 'user-1',
+                contentText: '中共'
+            },
+            state,
+            keywordGroupRules(
+                [
+                    {
+                        name: 'politics',
+                        keywords: ['中共']
+                    }
+                ],
+                'block',
+                []
+            )
+        )
+
+        assert.equal(decision.action, 'review')
     })
 })
