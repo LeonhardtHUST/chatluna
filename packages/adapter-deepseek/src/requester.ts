@@ -40,6 +40,17 @@ export function isDeepseekContentRiskError(value: unknown) {
     return text.toLowerCase().includes('content exists risk')
 }
 
+export function parseDeepseekV4Model(model: string) {
+    const disabled = model.endsWith('-instant') || model.endsWith('-instance')
+    const raw = disabled ? model.slice(0, model.lastIndexOf('-')) : model
+    const parsed = parseOpenAIModelNameWithReasoningEffort(raw)
+
+    return {
+        disabled,
+        model: parsed.model
+    }
+}
+
 export class DeepseekRequester
     extends ModelRequester
     implements EmbeddingsRequester
@@ -57,10 +68,7 @@ export class DeepseekRequester
         params: ModelRequestParams
     ): AsyncGenerator<ChatGenerationChunk> {
         const rawModel = params.model
-        const disabled = rawModel.endsWith('-instance')
-        const parsedModel = parseOpenAIModelNameWithReasoningEffort(
-            disabled ? rawModel.slice(0, -'-instance'.length) : rawModel
-        )
+        const parsedModel = parseDeepseekV4Model(rawModel)
         const model = parsedModel.model
         const requestContext = createRequestContext(
             this.ctx,
@@ -76,7 +84,7 @@ export class DeepseekRequester
         }
 
         const request = (await buildChatCompletionParams(
-            { ...params, model: disabled ? model : rawModel },
+            { ...params, model: parsedModel.disabled ? model : rawModel },
             this._plugin,
             false,
             true
@@ -86,11 +94,12 @@ export class DeepseekRequester
             }
         }
 
+        request.model = model
         request.thinking = {
-            type: disabled ? 'disabled' : 'enabled'
+            type: parsedModel.disabled ? 'disabled' : 'enabled'
         }
 
-        if (disabled) {
+        if (parsedModel.disabled) {
             delete request.reasoning_effort
         } else {
             delete request.temperature

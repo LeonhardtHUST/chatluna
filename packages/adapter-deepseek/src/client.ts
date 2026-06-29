@@ -129,6 +129,7 @@ export class DeepseekClient extends PlatformModelAndEmbeddingsClient<ClientConfi
                     model.includes('reasoner') ||
                     model.includes('thinking') ||
                     (model.startsWith('deepseek-v4-') &&
+                        !model.endsWith('-instant') &&
                         !model.endsWith('-instance'))
             })
         }
