@@ -276,6 +276,54 @@ export class ModerationService extends Service {
         })
     }
 
+    async recordRemoteApiBlock(
+        session: ModerationSession,
+        text: string,
+        metadata: Record<string, unknown> = {}
+    ): Promise<ModerationDecision> {
+        const req: ModerationRequest = {
+            stage: 'remote-api',
+            session,
+            userKey: getUserKey(session),
+            channelKey: getChannelKey(session),
+            conversationId:
+                typeof metadata.conversationId === 'string'
+                    ? metadata.conversationId
+                    : undefined,
+            contentText: text,
+            metadata: {
+                ...metadata,
+                platform: session.platform
+            }
+        }
+        const decision = normalizeDecision({
+            action: 'block',
+            labels: ['remote_api_content_risk'],
+            reasons: ['deepseek_content_exists_risk'],
+            confidence: 1,
+            severity: 5,
+            riskScore: 90,
+            fixedReply: this.config.enforcement.remoteApiBlockReply
+        })
+
+        logModerationEvent(this.ctx, 'moderation.decision', req, decision, {
+            shadowMode: this.config.shadowMode
+        })
+
+        const event = await this.recordEvent(req, decision)
+        const result = normalizeDecision({
+            ...decision,
+            eventId: event.id
+        })
+
+        logModerationEvent(this.ctx, 'moderation.block', req, result, {
+            eventId: event.id,
+            shadowMode: this.config.shadowMode
+        })
+
+        return result
+    }
+
     getUserRiskState(
         sessionOrUserKey: ModerationSession | string
     ): Promise<UserRiskState> {

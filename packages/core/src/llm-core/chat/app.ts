@@ -18,6 +18,7 @@ import {
     ChatLunaErrorCode
 } from 'koishi-plugin-chatluna/utils/error'
 import { ChatLunaLLMCallArg, ChatLunaLLMChainWrapper } from '../chain/base'
+import { DEFAULT_REMOTE_API_BLOCK_REPLY } from 'moderation-kernel'
 import {
     createDisplayResponse,
     initEmbeddings,
@@ -86,6 +87,9 @@ export class ChatInterface {
             error instanceof ChatLunaError &&
             error.errorCode === ChatLunaErrorCode.API_UNSAFE_CONTENT
         ) {
+            if (wrapper?.model.modelName.includes('deepseek')) {
+                error.message = await this.handleRemoteApiBlock(arg)
+            }
             throw error
         }
 
@@ -94,6 +98,37 @@ export class ChatInterface {
         }
 
         throw new ChatLunaError(ChatLunaErrorCode.UNKNOWN_ERROR, error as Error)
+    }
+
+    private async handleRemoteApiBlock(arg: ChatLunaLLMCallArg) {
+        const moderation = this.ctx.moderation
+        if (moderation?.config?.enabled === false) {
+            return DEFAULT_REMOTE_API_BLOCK_REPLY
+        }
+
+        const reply =
+            moderation?.config?.enforcement?.remoteApiBlockReply ??
+            DEFAULT_REMOTE_API_BLOCK_REPLY
+
+        if (moderation?.recordRemoteApiBlock != null) {
+            try {
+                await moderation.recordRemoteApiBlock(
+                    arg.session,
+                    getMessageContent(arg.message.content),
+                    {
+                        source: 'remote-api',
+                        provider: 'deepseek',
+                        conversationId: arg.conversationId,
+                        requestId: arg.requestId
+                    }
+                )
+            } catch (e) {
+                logger.error('Failed to record remote API moderation block:')
+                logger.error(e)
+            }
+        }
+
+        return reply
     }
 
     async chat(arg: ChatLunaLLMCallArg): Promise<ChainValues> {

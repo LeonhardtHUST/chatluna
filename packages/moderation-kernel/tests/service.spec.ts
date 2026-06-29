@@ -127,6 +127,49 @@ describe('moderation service', () => {
         await app.stop()
     })
 
+    it('records remote api blocks without raw text by default', async () => {
+        const { app, service } = await createService()
+        const decision = await service.recordRemoteApiBlock(
+            session,
+            'remote blocked text',
+            {
+                conversationId: 'conversation-1',
+                provider: 'deepseek'
+            }
+        )
+        const event = await service.repository.getEvent(decision.eventId!)
+
+        assert.equal(decision.action, 'block')
+        assert.equal(event?.stage, 'remote-api')
+        assert.equal(event?.action, 'block')
+        assert.deepEqual(event?.labels, ['remote_api_content_risk'])
+        assert.equal(event?.rawText, null)
+        assert.isString(event?.evidenceHash)
+        await app.stop()
+    })
+
+    it('stores remote api block raw text only when explicitly enabled', async () => {
+        const { app, service } = await createService(
+            cfg({
+                storage: {
+                    storeRawTextForAppeal: true,
+                    rawTextRetentionDays: 7,
+                    eventRetentionDays: 180,
+                    redactBeforePersist: true
+                }
+            })
+        )
+        const decision = await service.recordRemoteApiBlock(
+            session,
+            'remote blocked text'
+        )
+        const event = await service.repository.getEvent(decision.eventId!)
+
+        assert.equal(event?.rawText, 'remote blocked text')
+        assert.instanceOf(event?.expireAt, Date)
+        await app.stop()
+    })
+
     it('stage wrappers call the common evaluate path', async () => {
         const { app, service } = await createService()
         const stages: string[] = []

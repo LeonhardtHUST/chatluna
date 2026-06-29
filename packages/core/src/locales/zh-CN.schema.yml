@@ -92,6 +92,7 @@ $inner:
           enforcement:
               $desc: 执行策略
               fixedBlockReply: 执行模式下请求被拦截时发送的固定回复。
+              remoteApiBlockReply: 模型服务端因内容安全策略拒绝请求时发送的固定回复。
               maxRechecksPerRequest: 单次请求允许的最大二次复核次数。
           rules:
               $desc: 本地关键词规则

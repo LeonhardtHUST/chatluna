@@ -28,6 +28,18 @@ import {
 } from 'koishi-plugin-chatluna/utils/error'
 import { sseIterable } from 'koishi-plugin-chatluna/utils/sse'
 
+export function isDeepseekContentRiskError(value: unknown) {
+    const text = String(
+        typeof value === 'string'
+            ? value
+            : value instanceof Error
+              ? value.message
+              : JSON.stringify(value)
+    )
+
+    return text.toLowerCase().includes('content exists risk')
+}
+
 export class DeepseekRequester
     extends ModelRequester
     implements EmbeddingsRequester
@@ -92,10 +104,41 @@ export class DeepseekRequester
                 signal: params.signal
             })
 
+            if (response.status !== 200) {
+                const text = await response.text()
+
+                if (isDeepseekContentRiskError(text)) {
+                    throw new ChatLunaError(
+                        ChatLunaErrorCode.API_UNSAFE_CONTENT,
+                        new Error(
+                            'DeepSeek remote API rejected unsafe content.'
+                        )
+                    )
+                }
+
+                throw new ChatLunaError(
+                    ChatLunaErrorCode.API_REQUEST_FAILED,
+                    new Error(
+                        'Error when calling deepseek completion, Status: ' +
+                            response.status +
+                            ' ' +
+                            response.statusText +
+                            ', Response: ' +
+                            text
+                    )
+                )
+            }
+
             yield* processStreamResponse(requestContext, sseIterable(response))
         } catch (e) {
             if (e instanceof ChatLunaError) {
                 throw e
+            }
+            if (isDeepseekContentRiskError(e)) {
+                throw new ChatLunaError(
+                    ChatLunaErrorCode.API_UNSAFE_CONTENT,
+                    e instanceof Error ? e : new Error(String(e))
+                )
             }
             throw new ChatLunaError(ChatLunaErrorCode.API_REQUEST_FAILED, e)
         }

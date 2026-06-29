@@ -2,6 +2,7 @@ export type ModerationStage =
     | 'input'
     | 'pre-search'
     | 'tool-args'
+    | 'remote-api'
     | 'output'
     | 'appeal-replay'
 

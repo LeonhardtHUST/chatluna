@@ -91,6 +91,7 @@ $inner:
           enforcement:
               $desc: Moderation enforcement
               fixedBlockReply: Fixed reply sent when moderation blocks a request in enforce mode.
+              remoteApiBlockReply: Fixed reply sent when the model service rejects a request for content-safety reasons.
               maxRechecksPerRequest: Maximum secondary review attempts for one request.
           rules:
               $desc: Local keyword rules
