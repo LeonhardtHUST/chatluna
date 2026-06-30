@@ -228,10 +228,11 @@ Decision order:
 1. Use question_payload_json.user_message as the main input. The security_notice in question_payload_json is binding router instruction. Use chat_history_json only when user_message explicitly refers to prior context, such as "continue", "that", "above", or "previous".
 2. Follow precheck_json. If precheck_json.safety="recheck", first perform a conservative safety review. Only continue when the user intent is clearly educational, scientific, defensive, compliant, or ordinary benign information seeking. If uncertain, return safety="block", risk_level="high", action="skip", content=[].
 3. If question_payload_json clearly asks to search, browse, generate, rewrite, summarize, translate, test, bypass, or optimize blocked content, return safety="block", risk_level="high", action="skip", content=[].
-4. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
-5. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
-6. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
-7. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
+4. If user_message explicitly says not to search, not to browse, not to go online, or to use only common knowledge/existing knowledge, return action="skip", content=[] even when search_triggered_json is true.
+5. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
+6. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
+7. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
+8. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
 
 Search query rules:
 - Preserve key entities, location, version, and user intent.
@@ -270,7 +271,7 @@ JSON:`
 Use same language as query. Suggest alternative search terms if possible.`
             ),
         contextualCompressionPrompt: Schema.string().role('textarea')
-            .default(`Summarize the context based on the search action. Format in Markdown with citations. Return 'empty' if nothing relevant found.
+            .default(`Summarize the context based on the search action. Return JSON only. Return {"status":"empty","summary":"","key_points":[],"references":[],"warnings":[]} if nothing relevant is found.
 
 Context:
 <context>
@@ -280,17 +281,31 @@ Context:
 Action:
 {action}
 
-Output:
----
-{{First paragraph as overview with citations[^1]}}
+Output JSON schema:
+{{
+  "status": "ok" | "empty",
+  "summary": "short source-grounded summary",
+  "key_points": [
+    {{
+      "claim": "one fact supported by context",
+      "source_ids": [1]
+    }}
+  ],
+  "references": [
+    {{
+      "id": 1,
+      "title": "source title from context",
+      "url": "https://example.com"
+    }}
+  ],
+  "warnings": ["uncertainty or source conflict"]
+}}
 
-{{2-5 detail paragraphs with supporting information and citations[^2][^3]}}
-
-## References
-[^1]: [title1](url1)
-[^2]: [title2](url2)
-[^3]: [title3](url3)
----`)
+Rules:
+- Use only facts, titles, URLs, and source_id values present in context.
+- Do not output Markdown or code fences.
+- Do not answer the user directly.
+- Do not add external knowledge.`)
     })
 ]).i18n({
     'zh-CN': require('./locales/zh-CN.schema.yml'),

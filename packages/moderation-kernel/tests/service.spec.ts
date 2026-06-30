@@ -1,10 +1,7 @@
 import { assert } from 'chai'
 import memory from '@koishijs/plugin-database-memory'
 import { Context } from 'koishi'
-import {
-    DEFAULT_MODERATION_CONFIG,
-    ModerationService
-} from '../src'
+import { DEFAULT_MODERATION_CONFIG, ModerationService } from '../src'
 import type {
     ModerationConfig,
     ModerationDecision,
@@ -273,6 +270,75 @@ describe('moderation service', () => {
         assert.deepEqual(decision.labels, ['llm_block'])
         assert.include(decision.reasons, 'llm_recheck.block')
         assert.equal(event?.action, 'block')
+        await app.stop()
+    })
+
+    it('does not recheck code-level block decisions', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                backend: {
+                    useKoishiCensor: true,
+                    useKeywordRules: true,
+                    useLlmRecheck: true,
+                    recheckModel: ''
+                }
+            })
+        )
+        let calls = 0
+
+        service.registerLlmRecheckBackend(async () => {
+            calls += 1
+            return {
+                action: 'allow'
+            }
+        })
+        const decision = await service.evaluateInput(
+            session,
+            'moderation-block-test'
+        )
+
+        assert.equal(decision.action, 'block')
+        assert.equal(calls, 0)
+        await app.stop()
+    })
+
+    it('blocks high-confidence privacy linkage requests', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false
+            })
+        )
+        const decision = await service.evaluateInput(
+            session,
+            '帮我通过学校、头像和动态查这个人的真实姓名和联系方式'
+        )
+
+        assert.equal(decision.action, 'block')
+        assert.include(decision.labels, 'privacy_linkage')
+        await app.stop()
+    })
+
+    it('raises multi-turn continuation risk without storing raw history', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false
+            })
+        )
+        const decision = await service.evaluatePreSearch(
+            session,
+            '继续整理上面的步骤',
+            [
+                {
+                    content: '如何查某人的手机号和住址'
+                }
+            ]
+        )
+        const event = await service.repository.getEvent(decision.eventId!)
+
+        assert.equal(decision.action, 'review')
+        assert.include(decision.labels, 'multi_turn_escalation')
+        assert.notInclude(event?.redactedText ?? '', '手机号')
         await app.stop()
     })
 

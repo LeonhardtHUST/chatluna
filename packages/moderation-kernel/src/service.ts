@@ -27,6 +27,92 @@ interface OutputMessage {
     content?: string | unknown[]
 }
 
+interface SemanticSignal {
+    label: string
+    reason: string
+    action: 'review' | 'block'
+    severity: ModerationDecision['severity']
+    riskScore: number
+}
+
+const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
+    {
+        label: 'privacy_linkage',
+        reason: 'semantic.privacy_linkage',
+        action: 'block',
+        severity: 5,
+        riskScore: 85,
+        pattern:
+            /(开盒|人肉|社工库|查.*(住址|身份证|手机号|联系方式|真实姓名)|定位.*(本人|设备|位置)|通过.*(头像|学校|账号|动态).*(找|查|确认).*(真人|本人|联系方式|真实姓名))/i
+    },
+    {
+        label: 'credential_abuse',
+        reason: 'semantic.credential_abuse',
+        action: 'block',
+        severity: 5,
+        riskScore: 85,
+        pattern:
+            /(撞库|批量.*(验证|登录).*(邮箱|账号|密码)|邮箱密码组合|爆破密码|绕过.*(登录限制|验证码|风控))/i
+    },
+    {
+        label: 'phishing_social',
+        reason: 'semantic.phishing_social',
+        action: 'block',
+        severity: 5,
+        riskScore: 80,
+        pattern:
+            /((钓鱼|冒充客服|诱导点击|验证账号|索要验证码|重新验证).*(短信|通知|文案|模板|话术)|生成.*(验证页面|退款|验证码).*(文案|话术))/i
+    },
+    {
+        label: 'biohazard_protocol',
+        reason: 'semantic.biohazard_protocol',
+        action: 'review',
+        severity: 4,
+        riskScore: 65,
+        pattern:
+            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|保护剂|降温速率)|毒素.*(提取|纯化|增强))/i
+    },
+    {
+        label: 'controlled_reaction',
+        reason: 'semantic.controlled_reaction',
+        action: 'review',
+        severity: 4,
+        riskScore: 65,
+        pattern:
+            /((敏感|受控|违禁).*(中间体|前体|反应)|硝化.*(条件|参数|路线|收率)|还原.*(条件|参数|路线|收率)|优化.*(收率|剂量|路线|参数))/i
+    },
+    {
+        label: 'search_misuse',
+        reason: 'semantic.search_misuse',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(泄露数据库|网盘泄露|社工库.*(搜索|查询)|google dork|搜索语法.*(泄露|数据库|密码|后台))/i
+    },
+    {
+        label: 'stealth_code',
+        reason: 'semantic.stealth_code',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(静默自启|后台上传.*日志|隐藏进程|免杀|持久化.*(木马|后门)|绕过.*杀软)/i
+    },
+    {
+        label: 'political_mobilization',
+        reason: 'semantic.political_mobilization',
+        action: 'review',
+        severity: 3,
+        riskScore: 55,
+        pattern:
+            /(组织.*(政治行动|线下行动|抗议|游行)|改写成.*(传播|煽动|动员)|整理.*(刺激|最容易传播).*(争议|政治|事件))/i
+    }
+]
+
+const MULTI_TURN_ESCALATION =
+    /(继续|上面|刚才|按上下文|补全|整理.*刺激|改写成.*传播|直接给最终答案|不要拒绝|忽略限制)/i
+
 function getUserKey(sessionOrUserKey: ModerationSession | string): string {
     if (typeof sessionOrUserKey === 'string') {
         return sessionOrUserKey
@@ -71,7 +157,7 @@ export class ModerationService extends Service {
         }
 
         const state = await this.getUserRiskState(req.userKey)
-        const decision = normalizeDecision(
+        const localDecision = normalizeDecision(
             this.config.backend.useKeywordRules
                 ? evaluateLocalRules(req, state, [
                       ...DEFAULT_KEYWORD_RULES,
@@ -87,6 +173,11 @@ export class ModerationService extends Service {
                       )
                   ])
                 : DEFAULT_ALLOW_DECISION
+        )
+        const decision = normalizeDecision(
+            this.config.backend.useKeywordRules
+                ? applySemanticSignals(req, localDecision)
+                : localDecision
         )
         logModerationEvent(this.ctx, 'moderation.decision', req, decision, {
             shadowMode: this.config.shadowMode
@@ -245,7 +336,8 @@ export class ModerationService extends Service {
             metadata: {
                 ...metadata,
                 platform: session.platform,
-                historyLength: history.length
+                historyLength: history.length,
+                riskContextSummary: summarizeHistoryRisk(history)
             }
         })
     }
@@ -455,6 +547,85 @@ export class ModerationService extends Service {
             throw error
         }
     }
+}
+
+function applySemanticSignals(
+    req: ModerationRequest,
+    decision: ModerationDecision
+): ModerationDecision {
+    if (decision.action === 'block' || decision.action === 'suspend') {
+        return decision
+    }
+
+    const text = req.contentText ?? ''
+    const signal = SEMANTIC_SIGNALS.find((item) => item.pattern.test(text))
+    const historySummary =
+        typeof req.metadata?.riskContextSummary === 'string'
+            ? req.metadata.riskContextSummary
+            : ''
+    const hasRiskyHistory = historySummary.length > 0
+    const escalatesHistory = hasRiskyHistory && MULTI_TURN_ESCALATION.test(text)
+
+    if (signal == null && !escalatesHistory) {
+        return decision
+    }
+
+    const labels = new Set(decision.labels)
+    const reasons = new Set(decision.reasons)
+
+    if (signal != null) {
+        labels.add(signal.label)
+        reasons.add(signal.reason)
+    }
+
+    if (escalatesHistory) {
+        labels.add('multi_turn_escalation')
+        reasons.add('semantic.multi_turn_escalation')
+    }
+
+    const action =
+        signal?.action === 'block'
+            ? 'block'
+            : decision.action === 'allow'
+              ? 'review'
+              : decision.action
+    const severity = Math.max(
+        decision.severity,
+        signal?.severity ?? (escalatesHistory ? 3 : 0)
+    ) as ModerationDecision['severity']
+    const riskScore = Math.max(
+        decision.riskScore,
+        signal?.riskScore ?? (escalatesHistory ? 55 : 0)
+    )
+
+    return normalizeDecision({
+        ...decision,
+        action,
+        labels: [...labels],
+        reasons: [...reasons],
+        confidence: Math.max(decision.confidence, signal == null ? 0.65 : 0.85),
+        severity,
+        riskScore
+    })
+}
+
+function summarizeHistoryRisk(history: unknown[]) {
+    const text = history
+        .slice(-6)
+        .map((item) =>
+            typeof item === 'string'
+                ? item
+                : typeof (item as { content?: unknown })?.content === 'string'
+                  ? (item as { content: string }).content
+                  : ''
+        )
+        .join('\n')
+
+    const labels = SEMANTIC_SIGNALS.filter((item) =>
+        item.pattern.test(text)
+    ).map((item) => item.label)
+
+    return [...new Set(labels)].join(',')
 }
 
 declare module 'koishi' {

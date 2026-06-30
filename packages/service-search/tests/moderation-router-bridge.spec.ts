@@ -4,6 +4,10 @@ import { assert } from 'chai'
 import { readFileSync } from 'fs'
 import { Config } from '../src/config'
 import { parseSearchAction } from '../src/utils/parse'
+import {
+    formatCompressedContext,
+    normalizeReferencesMarkdown
+} from '../src/utils/references'
 
 describe('service-search moderation router parser', () => {
     it('returns review for invalid router json', () => {
@@ -85,5 +89,53 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(source, 'lower.includes')
         assert.include(source, "hit?.action === 'block'")
         assert.include(source, 'shortKeywordContextRules')
+    })
+
+    it('keeps explicit no-search intent above mechanical triggers', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, 'userForbidsSearch')
+        assert.include(source, '!forbidsSearch')
+        assert.include(source, 'user explicitly forbids search')
+    })
+
+    it('formats compressed json context with standard references', () => {
+        const context = formatCompressedContext(
+            JSON.stringify({
+                status: 'ok',
+                summary: 'summary',
+                key_points: [
+                    {
+                        claim: 'claim',
+                        source_ids: [1]
+                    }
+                ],
+                references: [
+                    {
+                        id: 1,
+                        title: 'Title',
+                        url: 'https://example.com'
+                    }
+                ],
+                warnings: []
+            }),
+            []
+        )
+
+        assert.include(context, 'claim[^1]')
+        assert.include(context, '## References')
+        assert.include(context, '[^1]: [Title](https://example.com)')
+    })
+
+    it('normalizes legacy inline reference formatting', () => {
+        const text = normalizeReferencesMarkdown(
+            'References<p>[^1]: 标题（https://example.com/a）[^2]: Other(https://example.com/b)</p>'
+        )
+
+        assert.include(text, '[^1]: [标题](https://example.com/a)')
+        assert.include(text, '\n[^2]: [Other](https://example.com/b)')
     })
 })
