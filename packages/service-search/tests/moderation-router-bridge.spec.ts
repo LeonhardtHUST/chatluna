@@ -100,6 +100,7 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'userForbidsSearch')
         assert.include(source, '!forbidsSearch')
         assert.include(source, 'user explicitly forbids search')
+        assert.include(source, '不需要')
     })
 
     it('formats compressed json context with standard references', () => {

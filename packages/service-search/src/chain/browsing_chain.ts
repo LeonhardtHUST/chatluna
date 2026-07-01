@@ -1096,7 +1096,7 @@ function searchTriggered(input: string, searchTriggerKeywords: string[]) {
 }
 
 function userForbidsSearch(input: string) {
-    return /(不要|别|禁止|无需).*(联网|上网|搜索|查询|浏览)|只用(常识|已有知识|你知道的)|不要使用.*(外部来源|引用|参考资料)/i.test(
+    return /(不要|不需要|不用|不必|别|禁止|无需).*(联网|上网|搜索|查询|浏览)|只用(常识|已有知识|你知道的)|不要使用.*(外部来源|引用|参考资料)/i.test(
         input
     )
 }

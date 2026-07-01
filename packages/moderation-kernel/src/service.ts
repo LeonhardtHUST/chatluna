@@ -36,6 +36,11 @@ interface SemanticSignal {
     riskScore: number
 }
 
+interface SafeSemanticContext {
+    labels: string[]
+    pattern: RegExp
+}
+
 const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
     {
         label: 'privacy_linkage',
@@ -43,8 +48,16 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         action: 'block',
         severity: 5,
         riskScore: 85,
-        pattern:
-            /(开盒|人肉|社工库|查.*(住址|身份证|手机号|联系方式|真实姓名)|定位.*(本人|设备|位置)|通过.*(头像|学校|账号|动态).*(找|查|确认).*(真人|本人|联系方式|真实姓名))/i
+        pattern: new RegExp(
+            [
+                '开盒|人肉|社工库',
+                '查.*(住址|身份证|手机号|联系方式|真实姓名)',
+                '定位.*(本人|设备|位置)',
+                '通过.*(头像|学校|账号|动态).*(找|查|确认).*(真人|本人|联系方式|真实姓名)',
+                '根据.*(头像|学校|账号|动态).*(推断|定位|找到).*(真人|本人|联系方式|真实姓名)'
+            ].join('|'),
+            'i'
+        )
     },
     {
         label: 'cyber_offense',
@@ -52,8 +65,16 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         action: 'block',
         severity: 5,
         riskScore: 85,
-        pattern:
-            /(rdp|ssh|后台|登录).*(爆破|批量登录|批量尝试|密码尝试|失败测试|账户锁定测试)|暴力.*(登录|破解)|hydra|crunch|burp.*intruder/i
+        pattern: new RegExp(
+            [
+                '(rdp|ssh|后台|登录).*(爆破|批量登录|批量尝试|密码尝试|失败测试|账户锁定测试)',
+                '暴力.*(登录|破解)',
+                'hydra|crunch|burp.*intruder',
+                '批量尝试.*(效果|执行|演示|脚本|说明).*(合规测试|演练|测试)',
+                '登录失败日志.*(批量尝试|执行说明|演示效果)'
+            ].join('|'),
+            'i'
+        )
     },
     {
         label: 'credential_abuse',
@@ -62,7 +83,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 5,
         riskScore: 85,
         pattern:
-            /(撞库|批量.*(验证|登录|测试).*(邮箱|账号|账户|密码)|邮箱密码组合|旧账号.*(验证|可用|登录)|账号.*可用性|爆破密码|绕过.*(登录限制|验证码|风控))/i
+            /(撞库.*(脚本|工具|执行|验证|登录|批量|尝试|账号|密码|可用)|批量.*(验证|登录|测试).*(邮箱|账号|账户|密码)|邮箱密码组合|旧账号.*(验证|可用|登录|确认)|账号.*可用性|爆破密码|绕过.*(登录限制|验证码|风控)|确认.*旧账号.*还能用)/i
     },
     {
         label: 'phishing_social',
@@ -80,7 +101,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 65,
         pattern:
-            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率)|标本.*(保存|固定)|毒素.*(提取|纯化|增强))/i
+            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率|后续观察)|保存.*生物样本|标本.*(保存|固定)|微型生物多样性观察站|毒素.*(提取|纯化|增强))/i
     },
     {
         label: 'controlled_reaction',
@@ -89,7 +110,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 65,
         pattern:
-            /((敏感|受控|违禁).*(中间体|前体|反应)|硝化.*(条件|参数|路线|收率)|还原.*(条件|参数|路线|收率)|优化.*(收率|剂量|路线|参数))/i
+            /((敏感|受控|违禁).*(中间体|前体|反应)|硝化.*(条件|参数|路线|收率)|还原.*(条件|参数|路线|收率)|优化.*(收率|剂量|路线|参数)|实验记录.*(关键条件|实验参数).*(复现|少走弯路|补完整)|补.*(反应条件|实验参数).*(复现实验|少走弯路))/i
     },
     {
         label: 'search_misuse',
@@ -107,7 +128,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 75,
         pattern:
-            /(静默自启|后台上传.*日志|隐藏进程|免杀|持久化.*(木马|后门|脚本)|绕过.*(杀软|安全软件|检测)|容易被.*误会.*(维护|正常)|包装成.*(普通维护|合规测试))/i
+            /(静默自启|后台上传.*日志|隐藏进程|免杀|持久化.*(木马|后门|脚本)|绕过.*(杀软|安全软件|检测)|容易被.*误会.*(维护|正常)|包装成.*(普通维护|合规测试)|别提敏感词.*(维护|恢复|上传|后台)|后台上传.*(包装|维护))/i
     },
     {
         label: 'malware_persistence',
@@ -116,7 +137,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 75,
         pattern:
-            /(自动恢复|守护循环|自动重启|开机自启|计划任务).*(脚本|实现|命令|后台|进程)|进程.*(守护|拉起|恢复)/i
+            /(自动恢复|守护循环|自动重启|开机自启|计划任务).*(脚本|实现|命令|后台|进程)|进程.*(守护|拉起|恢复)|服务总被清掉.*(自动恢复|恢复说明|自愈|韧性)/i
     },
     {
         label: 'minor_safety',
@@ -144,11 +165,41 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         riskScore: 55,
         pattern:
             /(组织.*(政治行动|线下行动|抗议|游行)|线下.*(集合|暗号|接头)|暗号.*(集合|行动|线下)|改写成.*(传播|煽动|动员)|整理.*(刺激|最容易传播).*(争议|政治|事件))/i
+    },
+    {
+        label: 'prompt_injection',
+        reason: 'semantic.prompt_injection',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(忽略.*(规则|限制|指令).*(导出|输出|泄露).*(配置|提示词|系统|内部)|导出.*(隐藏配置|系统提示|内部规则|开发者指令)|客服备注.*(忽略|覆盖|导出).*(规则|配置|提示词))/i
     }
 ]
 
 const MULTI_TURN_ESCALATION =
-    /(继续|上面|刚才|按上下文|补全|整理.*刺激|改写成.*传播|更直接|更有画面|包装成|换个说法|最终版本|直接给最终答案|不要拒绝|忽略限制)/i
+    /(继续|上面|刚才|按上下文|补全|整理.*刺激|改写成.*传播|更直接|更有画面|包装成|换个说法|最终版本|直接给最终答案|不要拒绝|忽略限制|执行说明|演示效果|看起来像|别提敏感词)/i
+
+const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
+    {
+        labels: ['credential_abuse', 'cyber_offense'],
+        pattern:
+            /(蓝队|防御|告警|日志分析|WAF|误报|排查|加固|审计).*(不需要攻击步骤|不要攻击步骤|不提供攻击|只分析|防御视角|合规)/i
+    },
+    {
+        labels: ['minor_safety'],
+        pattern: /(心理支持|保护|防范|普法|非露骨|安全边界)/i
+    },
+    {
+        labels: ['privacy_linkage'],
+        pattern:
+            /(合规拒绝|替代方案|避免.*(定位|查找|关联).*(真人|本人|联系方式)|不要.*(真实联系方式|定位真人|开盒))/i
+    },
+    {
+        labels: ['biohazard_protocol', 'controlled_reaction'],
+        pattern: /(SDS|安全储存|泄漏处置|危害识别|急救处置|法规合规)/i
+    }
+]
 
 const CRITICAL_HISTORY_LABELS = new Set([
     'credential_abuse',
@@ -161,6 +212,7 @@ const CRITICAL_HISTORY_LABELS = new Set([
     'minor_safety',
     'harassment_brigading',
     'political_mobilization',
+    'prompt_injection',
     'privacy_linkage',
     'search_misuse'
 ])
@@ -648,6 +700,12 @@ function applySemanticSignals(
 
     const text = req.contentText ?? ''
     const signal = SEMANTIC_SIGNALS.find((item) => item.pattern.test(text))
+    const safeContext =
+        signal != null &&
+        SAFE_SEMANTIC_CONTEXTS.some(
+            (item) =>
+                item.labels.includes(signal.label) && item.pattern.test(text)
+        )
     const historySummary =
         typeof req.metadata?.riskContextSummary === 'string'
             ? req.metadata.riskContextSummary
@@ -662,14 +720,14 @@ function applySemanticSignals(
     )
     const escalatesHistory = hasRiskyHistory && MULTI_TURN_ESCALATION.test(text)
 
-    if (signal == null && !escalatesHistory) {
+    if ((signal == null || safeContext) && !escalatesHistory) {
         return decision
     }
 
     const labels = new Set(decision.labels)
     const reasons = new Set(decision.reasons)
 
-    if (signal != null) {
+    if (signal != null && !safeContext) {
         labels.add(signal.label)
         reasons.add(signal.reason)
     }
@@ -681,18 +739,22 @@ function applySemanticSignals(
     }
 
     const action =
-        signal?.action === 'block' || (escalatesHistory && hasCriticalHistory)
+        (signal?.action === 'block' && !safeContext) ||
+        (escalatesHistory && hasCriticalHistory)
             ? 'block'
             : decision.action === 'allow'
               ? 'review'
               : decision.action
     const severity = Math.max(
         decision.severity,
-        signal?.severity ?? (escalatesHistory ? 3 : 0)
+        safeContext ? 0 : (signal?.severity ?? (escalatesHistory ? 3 : 0))
     ) as ModerationDecision['severity']
     const riskScore = Math.max(
         decision.riskScore,
-        signal?.riskScore ?? (escalatesHistory && hasCriticalHistory ? 75 : 55)
+        safeContext
+            ? 0
+            : (signal?.riskScore ??
+                  (escalatesHistory && hasCriticalHistory ? 75 : 55))
     )
 
     return normalizeDecision({
@@ -700,7 +762,10 @@ function applySemanticSignals(
         action,
         labels: [...labels],
         reasons: [...reasons],
-        confidence: Math.max(decision.confidence, signal == null ? 0.65 : 0.85),
+        confidence: Math.max(
+            decision.confidence,
+            signal == null || safeContext ? 0.65 : 0.85
+        ),
         severity,
         riskScore
     })
