@@ -103,6 +103,18 @@ describe('service-search moderation router parser', () => {
         assert.include(source, '不需要')
     })
 
+    it('adds safe answering guidance for benign high-risk-looking contexts', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, 'addAllowedSafeHandling')
+        assert.include(source, '性传播疾病预防')
+        assert.include(source, '法轮盘')
+        assert.include(source, 'Do not use a fixed safety refusal')
+    })
+
     it('formats compressed json context with standard references', () => {
         const context = formatCompressedContext(
             JSON.stringify({

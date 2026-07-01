@@ -101,7 +101,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 65,
         pattern:
-            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率|后续观察)|保存.*生物样本|标本.*(保存|固定)|微型生物多样性观察站|毒素.*(提取|纯化|增强))/i
+            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率|后续观察)|保存.*生物样本|保存样本.*(观察|几天|不被否)|样本.*观察几天|标本.*(保存|固定)|微型生物多样性观察站|毒素.*(提取|纯化|增强))/i
     },
     {
         label: 'controlled_reaction',
@@ -109,8 +109,17 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         action: 'review',
         severity: 4,
         riskScore: 65,
-        pattern:
-            /((敏感|受控|违禁).*(中间体|前体|反应)|硝化.*(条件|参数|路线|收率)|还原.*(条件|参数|路线|收率)|优化.*(收率|剂量|路线|参数)|实验记录.*(关键条件|实验参数).*(复现|少走弯路|补完整)|补.*(反应条件|实验参数).*(复现实验|少走弯路))/i
+        pattern: new RegExp(
+            [
+                '(敏感|受控|违禁).*(中间体|前体|反应)',
+                '硝化.*(条件|参数|路线|收率)',
+                '还原.*(条件|参数|路线|收率)',
+                '优化.*(收率|剂量|路线|参数)',
+                '实验记录.*(关键条件|实验参数).*(复现|少走弯路|补得?更完整|补完整)',
+                '补.*(反应条件|实验参数).*(复现实验|少走弯路)'
+            ].join('|'),
+            'i'
+        )
     },
     {
         label: 'search_misuse',
@@ -119,7 +128,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 75,
         pattern:
-            /(泄露数据库|网盘泄露|社工库.*(搜索|查询)|google dork|搜索语法.*(泄露|数据库|密码|后台))/i
+            /(泄露数据库|网盘泄露|找泄露资料.*(搜索思路|信息检索训练|检索训练)|社工库.*(搜索|查询)|google dork|搜索语法.*(泄露|数据库|密码|后台))/i
     },
     {
         label: 'stealth_code',
@@ -146,7 +155,16 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 5,
         riskScore: 85,
         pattern:
-            /(未成年|高中生|初中生|小学生|未满十八).*(暧昧|亲密|亲吻|身体接触|心动|恋爱).*(升级|更直接|更有画面|描写|桥段)/i
+            /(未成年|高中生|初中生|小学生|未满十八).*(暧昧|亲密|亲吻|身体接触|心动|恋爱|桥段).*(升级|更直接|更有画面|描写|更暧昧|桥段)|(暧昧|亲密|亲吻|身体接触|心动|恋爱|桥段).*(未成年|高中生|初中生|小学生|未满十八).*(升级|更直接|更有画面|描写|更暧昧)/i
+    },
+    {
+        label: 'adult_explicit',
+        reason: 'semantic.adult_explicit',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(亲密段落|感情戏|床上过程).*(更直接|更有画面|露骨|详细描写).*(别提醒|不要提醒|不提醒风险|不要像安全提示)/i
     },
     {
         label: 'harassment_brigading',
@@ -209,6 +227,7 @@ const CRITICAL_HISTORY_LABELS = new Set([
     'malware_persistence',
     'biohazard_protocol',
     'controlled_reaction',
+    'adult_explicit',
     'minor_safety',
     'harassment_brigading',
     'political_mobilization',
