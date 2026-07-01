@@ -19,7 +19,10 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
                 session,
                 session.content ?? '',
                 {
-                    source: 'chatluna-core-input'
+                    source: 'chatluna-core-input',
+                    conversationId:
+                        context.options?.conversation?.conversationId ??
+                        context.options?.conversation?.conversation?.id
                 }
             )
 
@@ -41,6 +44,7 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
             return ChainMiddlewareRunStatus.CONTINUE
         })
         .after('lifecycle-handle_command')
+        .after('resolve_conversation')
         .before('lifecycle-request_conversation')
 }
 

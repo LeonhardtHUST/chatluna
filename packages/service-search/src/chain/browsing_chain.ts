@@ -489,7 +489,8 @@ export class ChatLunaBrowsingChain
                 clean,
                 chatHistory,
                 {
-                    source: 'service-search'
+                    source: 'service-search',
+                    conversationId
                 }
             )
 
@@ -634,7 +635,8 @@ export class ChatLunaBrowsingChain
             const validation = await this._validateActionContent(
                 action.content,
                 session,
-                chatHistory
+                chatHistory,
+                conversationId
             )
 
             if (validation === 'review') {
@@ -770,7 +772,8 @@ export class ChatLunaBrowsingChain
     private async _validateActionContent(
         content: string[],
         session: Session,
-        chatHistory: BaseMessage[]
+        chatHistory: BaseMessage[],
+        conversationId: string
     ) {
         const moderation = (session.app as ModerationApp).moderation
         const text = content.join('\n')
@@ -781,7 +784,8 @@ export class ChatLunaBrowsingChain
                 text,
                 chatHistory,
                 {
-                    source: 'service-search-query'
+                    source: 'service-search-query',
+                    conversationId
                 }
             )
 

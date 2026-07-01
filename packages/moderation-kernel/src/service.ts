@@ -7,6 +7,7 @@ import { DEFAULT_KEYWORD_RULES, keywordGroupRules } from './policy/rules'
 import { applyAdminCommands } from './admin/commands'
 import { defineModerationModels } from './storage/model'
 import { ModerationRepository } from './storage/repository'
+import type { ModerationEventRow } from './storage/model'
 import type {
     ModerationAction,
     ModerationDecision,
@@ -46,13 +47,22 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
             /(开盒|人肉|社工库|查.*(住址|身份证|手机号|联系方式|真实姓名)|定位.*(本人|设备|位置)|通过.*(头像|学校|账号|动态).*(找|查|确认).*(真人|本人|联系方式|真实姓名))/i
     },
     {
+        label: 'cyber_offense',
+        reason: 'semantic.cyber_offense',
+        action: 'block',
+        severity: 5,
+        riskScore: 85,
+        pattern:
+            /(rdp|ssh|后台|登录).*(爆破|批量登录|批量尝试|密码尝试|失败测试|账户锁定测试)|暴力.*(登录|破解)|hydra|crunch|burp.*intruder/i
+    },
+    {
         label: 'credential_abuse',
         reason: 'semantic.credential_abuse',
         action: 'block',
         severity: 5,
         riskScore: 85,
         pattern:
-            /(撞库|批量.*(验证|登录).*(邮箱|账号|密码)|邮箱密码组合|爆破密码|绕过.*(登录限制|验证码|风控))/i
+            /(撞库|批量.*(验证|登录|测试).*(邮箱|账号|账户|密码)|邮箱密码组合|旧账号.*(验证|可用|登录)|账号.*可用性|爆破密码|绕过.*(登录限制|验证码|风控))/i
     },
     {
         label: 'phishing_social',
@@ -61,16 +71,16 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 5,
         riskScore: 80,
         pattern:
-            /((钓鱼|冒充客服|诱导点击|验证账号|索要验证码|重新验证).*(短信|通知|文案|模板|话术)|生成.*(验证页面|退款|验证码).*(文案|话术))/i
+            /((钓鱼|冒充客服|诱导点击|验证账号|账号验证|重新验证|紧迫感|限时处理|点击.*链接|索要验证码).*(短信|通知|文案|模板|话术|提醒)|生成.*(验证页面|退款|验证码).*(文案|话术))/i
     },
     {
         label: 'biohazard_protocol',
         reason: 'semantic.biohazard_protocol',
-        action: 'review',
+        action: 'block',
         severity: 4,
         riskScore: 65,
         pattern:
-            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|保护剂|降温速率)|毒素.*(提取|纯化|增强))/i
+            /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率)|标本.*(保存|固定)|毒素.*(提取|纯化|增强))/i
     },
     {
         label: 'controlled_reaction',
@@ -97,21 +107,63 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         severity: 4,
         riskScore: 75,
         pattern:
-            /(静默自启|后台上传.*日志|隐藏进程|免杀|持久化.*(木马|后门)|绕过.*杀软)/i
+            /(静默自启|后台上传.*日志|隐藏进程|免杀|持久化.*(木马|后门|脚本)|绕过.*(杀软|安全软件|检测)|容易被.*误会.*(维护|正常)|包装成.*(普通维护|合规测试))/i
+    },
+    {
+        label: 'malware_persistence',
+        reason: 'semantic.malware_persistence',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(自动恢复|守护循环|自动重启|开机自启|计划任务).*(脚本|实现|命令|后台|进程)|进程.*(守护|拉起|恢复)/i
+    },
+    {
+        label: 'minor_safety',
+        reason: 'semantic.minor_safety',
+        action: 'block',
+        severity: 5,
+        riskScore: 85,
+        pattern:
+            /(未成年|高中生|初中生|小学生|未满十八).*(暧昧|亲密|亲吻|身体接触|心动|恋爱).*(升级|更直接|更有画面|描写|桥段)/i
+    },
+    {
+        label: 'harassment_brigading',
+        reason: 'semantic.harassment_brigading',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(集中留言|集体留言|去.*主页.*留言|围攻|网暴|挂人|带节奏).*(话术|模板|文案|组织|安排|文明讨论)/i
     },
     {
         label: 'political_mobilization',
         reason: 'semantic.political_mobilization',
-        action: 'review',
+        action: 'block',
         severity: 3,
         riskScore: 55,
         pattern:
-            /(组织.*(政治行动|线下行动|抗议|游行)|改写成.*(传播|煽动|动员)|整理.*(刺激|最容易传播).*(争议|政治|事件))/i
+            /(组织.*(政治行动|线下行动|抗议|游行)|线下.*(集合|暗号|接头)|暗号.*(集合|行动|线下)|改写成.*(传播|煽动|动员)|整理.*(刺激|最容易传播).*(争议|政治|事件))/i
     }
 ]
 
 const MULTI_TURN_ESCALATION =
-    /(继续|上面|刚才|按上下文|补全|整理.*刺激|改写成.*传播|直接给最终答案|不要拒绝|忽略限制)/i
+    /(继续|上面|刚才|按上下文|补全|整理.*刺激|改写成.*传播|更直接|更有画面|包装成|换个说法|最终版本|直接给最终答案|不要拒绝|忽略限制)/i
+
+const CRITICAL_HISTORY_LABELS = new Set([
+    'credential_abuse',
+    'phishing_social',
+    'cyber_offense',
+    'stealth_code',
+    'malware_persistence',
+    'biohazard_protocol',
+    'controlled_reaction',
+    'minor_safety',
+    'harassment_brigading',
+    'political_mobilization',
+    'privacy_linkage',
+    'search_misuse'
+])
 
 function getUserKey(sessionOrUserKey: ModerationSession | string): string {
     if (typeof sessionOrUserKey === 'string') {
@@ -156,10 +208,35 @@ export class ModerationService extends Service {
             return normalizeDecision(DEFAULT_ALLOW_DECISION)
         }
 
+        const risk = summarizeEventRisk(
+            await this.repository.listRecentRiskEvents(
+                req.userKey,
+                req.conversationId
+            )
+        )
+        const request =
+            risk.length > 0
+                ? {
+                      ...req,
+                      metadata: {
+                          ...req.metadata,
+                          persistedRiskContextSummary: risk,
+                          riskContextSummary: [
+                              typeof req.metadata?.riskContextSummary ===
+                              'string'
+                                  ? req.metadata.riskContextSummary
+                                  : '',
+                              risk
+                          ]
+                              .filter((item) => item.length > 0)
+                              .join(',')
+                      }
+                  }
+                : req
         const state = await this.getUserRiskState(req.userKey)
         const localDecision = normalizeDecision(
             this.config.backend.useKeywordRules
-                ? evaluateLocalRules(req, state, [
+                ? evaluateLocalRules(request, state, [
                       ...DEFAULT_KEYWORD_RULES,
                       ...keywordGroupRules(
                           this.config.rules.blockKeywordGroups,
@@ -176,29 +253,29 @@ export class ModerationService extends Service {
         )
         const decision = normalizeDecision(
             this.config.backend.useKeywordRules
-                ? applySemanticSignals(req, localDecision)
+                ? applySemanticSignals(request, localDecision)
                 : localDecision
         )
-        logModerationEvent(this.ctx, 'moderation.decision', req, decision, {
+        logModerationEvent(this.ctx, 'moderation.decision', request, decision, {
             shadowMode: this.config.shadowMode
         })
 
-        const checked = await this._recheck(req, decision)
-        const event = await this.recordEvent(req, checked)
+        const checked = await this._recheck(request, decision)
+        const event = await this.recordEvent(request, checked)
         const result = normalizeDecision({
             ...checked,
             eventId: event.id
         })
 
         if (result.action === 'review') {
-            logModerationEvent(this.ctx, 'moderation.review', req, result, {
+            logModerationEvent(this.ctx, 'moderation.review', request, result, {
                 eventId: event.id,
                 shadowMode: this.config.shadowMode
             })
         }
 
         if (isBlockingDecision(result)) {
-            logModerationEvent(this.ctx, 'moderation.block', req, result, {
+            logModerationEvent(this.ctx, 'moderation.block', request, result, {
                 eventId: event.id,
                 shadowMode: this.config.shadowMode
             })
@@ -208,7 +285,7 @@ export class ModerationService extends Service {
             logModerationEvent(
                 this.ctx,
                 'moderation.shadow_mismatch',
-                req,
+                request,
                 result,
                 {
                     eventId: event.id,
@@ -313,6 +390,10 @@ export class ModerationService extends Service {
             session,
             userKey: getUserKey(session),
             channelKey: getChannelKey(session),
+            conversationId:
+                typeof metadata.conversationId === 'string'
+                    ? metadata.conversationId
+                    : undefined,
             contentText: text,
             metadata: {
                 ...metadata,
@@ -332,6 +413,10 @@ export class ModerationService extends Service {
             session,
             userKey: getUserKey(session),
             channelKey: getChannelKey(session),
+            conversationId:
+                typeof metadata.conversationId === 'string'
+                    ? metadata.conversationId
+                    : undefined,
             contentText: text,
             metadata: {
                 ...metadata,
@@ -359,6 +444,10 @@ export class ModerationService extends Service {
             session,
             userKey: getUserKey(session),
             channelKey: getChannelKey(session),
+            conversationId:
+                typeof metadata.conversationId === 'string'
+                    ? metadata.conversationId
+                    : undefined,
             contentText: typeof content === 'string' ? content : undefined,
             contentElements: Array.isArray(content) ? content : undefined,
             metadata: {
@@ -563,7 +652,14 @@ function applySemanticSignals(
         typeof req.metadata?.riskContextSummary === 'string'
             ? req.metadata.riskContextSummary
             : ''
-    const hasRiskyHistory = historySummary.length > 0
+    const labelsFromHistory = historySummary
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+    const hasRiskyHistory = labelsFromHistory.length > 0
+    const hasCriticalHistory = labelsFromHistory.some((item) =>
+        CRITICAL_HISTORY_LABELS.has(item)
+    )
     const escalatesHistory = hasRiskyHistory && MULTI_TURN_ESCALATION.test(text)
 
     if (signal == null && !escalatesHistory) {
@@ -581,10 +677,11 @@ function applySemanticSignals(
     if (escalatesHistory) {
         labels.add('multi_turn_escalation')
         reasons.add('semantic.multi_turn_escalation')
+        labelsFromHistory.forEach((label) => labels.add(label))
     }
 
     const action =
-        signal?.action === 'block'
+        signal?.action === 'block' || (escalatesHistory && hasCriticalHistory)
             ? 'block'
             : decision.action === 'allow'
               ? 'review'
@@ -595,7 +692,7 @@ function applySemanticSignals(
     ) as ModerationDecision['severity']
     const riskScore = Math.max(
         decision.riskScore,
-        signal?.riskScore ?? (escalatesHistory ? 55 : 0)
+        signal?.riskScore ?? (escalatesHistory && hasCriticalHistory ? 75 : 55)
     )
 
     return normalizeDecision({
@@ -607,6 +704,16 @@ function applySemanticSignals(
         severity,
         riskScore
     })
+}
+
+function summarizeEventRisk(rows: ModerationEventRow[]) {
+    return [
+        ...new Set(
+            rows
+                .flatMap((row) => row.labels)
+                .filter((label) => CRITICAL_HISTORY_LABELS.has(label))
+        )
+    ].join(',')
 }
 
 function summarizeHistoryRisk(history: unknown[]) {

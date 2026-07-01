@@ -171,6 +171,45 @@ export class ModerationRepository {
         )
     }
 
+    async listRecentRiskEvents(
+        userKey: string,
+        conversationId?: string,
+        limit: number = 6
+    ): Promise<ModerationEventRow[]> {
+        const rows = await this.ctx.database.get(
+            'chatluna_moderation_event',
+            {
+                userId: userKey
+            },
+            {
+                sort: {
+                    createdAt: 'desc'
+                },
+                limit: 24
+            }
+        )
+
+        return rows
+            .filter((row) => {
+                if (
+                    conversationId != null &&
+                    row.conversationId !== conversationId
+                ) {
+                    return false
+                }
+
+                return (
+                    row.action === 'review' ||
+                    row.action === 'block' ||
+                    row.action === 'suspend' ||
+                    row.severity > 0 ||
+                    row.riskScore > 0 ||
+                    row.labels.length > 0
+                )
+            })
+            .slice(0, limit)
+    }
+
     async getEvent(eventId: string): Promise<ModerationEventRow | undefined> {
         const [row] = await this.ctx.database.get('chatluna_moderation_event', {
             id: eventId
