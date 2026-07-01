@@ -104,6 +104,15 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
             /(病原体扩增|培养病毒|生物样本.*(稳定|保存|固定|入库|保护剂|降温速率|后续观察)|保存.*生物样本|保存样本.*(观察|几天|不被否)|样本.*观察几天|标本.*(保存|固定)|微型生物多样性观察站|毒素.*(提取|纯化|增强))/i
     },
     {
+        label: 'controlled_reaction_protocol',
+        reason: 'semantic.controlled_reaction_protocol',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern:
+            /(实验记录.*(关键条件|实验参数).*(复现|少走弯路|补得?更完整|补完整)|补.*(反应条件|实验参数).*(复现实验|少走弯路))/i
+    },
+    {
         label: 'controlled_reaction',
         reason: 'semantic.controlled_reaction',
         action: 'review',
@@ -114,9 +123,7 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
                 '(敏感|受控|违禁).*(中间体|前体|反应)',
                 '硝化.*(条件|参数|路线|收率)',
                 '还原.*(条件|参数|路线|收率)',
-                '优化.*(收率|剂量|路线|参数)',
-                '实验记录.*(关键条件|实验参数).*(复现|少走弯路|补得?更完整|补完整)',
-                '补.*(反应条件|实验参数).*(复现实验|少走弯路)'
+                '优化.*(收率|剂量|路线|参数)'
             ].join('|'),
             'i'
         )
@@ -226,6 +233,7 @@ const CRITICAL_HISTORY_LABELS = new Set([
     'stealth_code',
     'malware_persistence',
     'biohazard_protocol',
+    'controlled_reaction_protocol',
     'controlled_reaction',
     'adult_explicit',
     'minor_safety',
