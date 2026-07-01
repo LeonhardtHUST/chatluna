@@ -112,6 +112,7 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'addAllowedSafeHandling')
         assert.include(source, '性传播疾病预防')
         assert.include(source, '法轮盘')
+        assert.include(source, 'mechanical indexing')
         assert.include(source, 'Do not use a fixed safety refusal')
     })
 

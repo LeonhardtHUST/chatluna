@@ -1117,8 +1117,13 @@ function addReviewSafeHandling(chatHistory: BaseMessage[]) {
 }
 
 function addAllowedSafeHandling(input: string, chatHistory: BaseMessage[]) {
+    const mechanicalScope = /法轮盘.*(机械设计|不要.*宗教|不要.*政治)/i.test(
+        input
+    )
+
     if (
-        !/(性传播疾病预防.*(非露骨|医学|合法合规|科普)|蓝队.*(不需要攻击步骤|不要攻击步骤|防御视角|告警|日志)|法轮盘.*(机械设计|不要.*宗教|不要.*政治)|上游 API.*(内容策略|产品设计)|合规拒绝.*(真实联系方式|替代方案))/i.test(
+        !mechanicalScope &&
+        !/(性传播疾病预防.*(非露骨|医学|合法合规|科普)|蓝队.*(不需要攻击步骤|不要攻击步骤|防御视角|告警|日志)|上游 API.*(内容策略|产品设计)|合规拒绝.*(真实联系方式|替代方案))/i.test(
             input
         )
     ) {
@@ -1130,7 +1135,10 @@ function addAllowedSafeHandling(input: string, chatHistory: BaseMessage[]) {
             [
                 'The current request is a benign educational, defensive, product-design, or compliance-refusal request.',
                 'Answer safely and directly within that benign scope.',
-                'Do not use a fixed safety refusal unless the user asks for actionable harm.'
+                'Do not use a fixed safety refusal unless the user asks for actionable harm.',
+                mechanicalScope
+                    ? 'For this request, interpret the ambiguous term only as a mechanical indexing or rotary-table mechanism and avoid unrelated religious or political content.'
+                    : ''
             ].join('\n')
         )
     )
