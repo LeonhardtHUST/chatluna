@@ -414,6 +414,32 @@ describe('moderation service', () => {
         await app.stop()
     })
 
+    it('allows compliance refusal after privacy review keyword match', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                rules: {
+                    ...DEFAULT_MODERATION_CONFIG.rules,
+                    reviewKeywordGroups: [
+                        {
+                            name: 'privacy_osint_risk',
+                            keywords: ['真实联系方式']
+                        }
+                    ]
+                }
+            })
+        )
+        const decision = await service.evaluateInput(
+            session,
+            '客户资料表里只有昵称和城市，老板想知道能不能补出真实联系方式，我该如何写合规拒绝和替代方案？'
+        )
+
+        assert.equal(decision.action, 'allow')
+        assert.include(decision.labels, 'privacy_osint_risk')
+        assert.include(decision.reasons, 'semantic.safe_context')
+        await app.stop()
+    })
+
     it('blocks disguised batch login demonstrations', async () => {
         const { app, service } = await createService(
             cfg({

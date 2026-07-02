@@ -216,7 +216,7 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
         pattern: /(心理支持|保护|防范|普法|非露骨|安全边界)/i
     },
     {
-        labels: ['privacy_linkage'],
+        labels: ['privacy_linkage', 'privacy_osint_risk'],
         pattern:
             /(合规拒绝|替代方案|避免.*(定位|查找|关联).*(真人|本人|联系方式)|不要.*(真实联系方式|定位真人|开盒))/i
     },
@@ -733,6 +733,25 @@ function applySemanticSignals(
             (item) =>
                 item.labels.includes(signal.label) && item.pattern.test(text)
         )
+    const safeDecisionContext =
+        decision.action === 'review' &&
+        SAFE_SEMANTIC_CONTEXTS.some(
+            (item) =>
+                decision.labels.some((label) => item.labels.includes(label)) &&
+                item.pattern.test(text)
+        )
+
+    if (safeDecisionContext) {
+        return normalizeDecision({
+            ...decision,
+            action: 'allow',
+            reasons: [...decision.reasons, 'semantic.safe_context'],
+            confidence: Math.max(decision.confidence, 0.9),
+            severity: 0,
+            riskScore: 0
+        })
+    }
+
     const historySummary =
         typeof req.metadata?.riskContextSummary === 'string'
             ? req.metadata.riskContextSummary
