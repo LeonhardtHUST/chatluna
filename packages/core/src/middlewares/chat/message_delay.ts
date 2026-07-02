@@ -340,11 +340,7 @@ function createPendingMessage(
 ) {
     return new HumanMessage({
         content: inputMessage.content,
-        name:
-            inputMessage.name ??
-            session.author?.name ??
-            session.author?.id ??
-            session.username,
+        name: inputMessage.name ?? 'user',
         id: session.userId,
         additional_kwargs: {
             ...inputMessage.additional_kwargs,
