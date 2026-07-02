@@ -125,6 +125,13 @@ function renderToken(token: Token, platform?: string): h | h[] {
         } else if (token.type === 'del') {
             return h('del', children)
         } else if (token.type === 'link') {
+            if (platform === 'sandbox' || platform === 'onebot') {
+                return h.text(
+                    `${children.map((item) => item.toString()).join('')} (${
+                        token.href
+                    })`
+                )
+            }
             return h('a', { href: token.href }, children)
         } else if (token.type === 'list_item') {
             if (!token.loose) {

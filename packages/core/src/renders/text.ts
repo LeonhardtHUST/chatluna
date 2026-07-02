@@ -36,15 +36,11 @@ export class TextRenderer extends Renderer {
             transformed = transformed.map((element) => h('message', element))
         }
 
-        if (transformed[0]?.type === 'p') {
-            const pElement = transformed.shift()
-            const pElementContent = pElement.attrs['content']
-            if (pElementContent) {
-                transformed.unshift(h.text(pElementContent))
-            } else {
-                transformed.unshift(...pElement.children)
-            }
-        }
+        transformed = transformed.flatMap((element) => {
+            if (element.type !== 'p') return element
+            const content = element.attrs['content']
+            return content ? h.text(content) : element.children
+        })
 
         return {
             element: transformed
