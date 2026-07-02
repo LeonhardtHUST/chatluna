@@ -240,14 +240,18 @@ it('getMessageContent flattens structured text parts', () => {
 it('transformToMarkdown strips raw html tags without dropping text', () => {
     const text = JSON.stringify(
         transformToMarkdown(
-            'A<p>B</p><br>C <a href="https://example.com">link</a>'
+            'A<p>**B**</p><br>C `code` <a href="https://example.com">link</a>',
+            'sandbox:test'
         )
     )
 
     assert.notInclude(text, '<p>')
     assert.notInclude(text, '<a')
+    assert.notInclude(text, '<strong>')
+    assert.notInclude(text, '<code')
     assert.include(text, 'A')
     assert.include(text, 'B')
     assert.include(text, 'C')
+    assert.include(text, 'code')
     assert.include(text, 'link')
 })

@@ -58,9 +58,13 @@ export async function checkAdmin(session: Session) {
 
 const tagRegExp = /<(\/?)([^!\s>/]+)([^>]*?)\s*(\/?)>/
 
+function isTextPlatform(platform?: string) {
+    return platform === 'onebot' || platform?.startsWith('sandbox')
+}
+
 function renderInlineToken(token: Token, platform?: string): h | undefined {
     if (token.type === 'code') {
-        if (platform === 'sandbox' || platform === 'onebot') {
+        if (isTextPlatform(platform)) {
             return h.text(token.text)
         }
         return h(
@@ -74,7 +78,7 @@ function renderInlineToken(token: Token, platform?: string): h | undefined {
             }
         )
     } else if (token.type === 'codespan') {
-        if (platform === 'sandbox' || platform === 'onebot') {
+        if (isTextPlatform(platform)) {
             return h.text(token.text)
         }
         return h('code', {
@@ -125,22 +129,22 @@ function renderToken(token: Token, platform?: string): h | h[] {
         if (token.type === 'paragraph') {
             return h('p', children)
         } else if (token.type === 'em') {
-            if (platform === 'sandbox' || platform === 'onebot') {
+            if (isTextPlatform(platform)) {
                 return children
             }
             return h('em', children)
         } else if (token.type === 'strong') {
-            if (platform === 'sandbox' || platform === 'onebot') {
+            if (isTextPlatform(platform)) {
                 return children
             }
             return h('strong', children)
         } else if (token.type === 'del') {
-            if (platform === 'sandbox' || platform === 'onebot') {
+            if (isTextPlatform(platform)) {
                 return children
             }
             return h('del', children)
         } else if (token.type === 'link') {
-            if (platform === 'sandbox' || platform === 'onebot') {
+            if (isTextPlatform(platform)) {
                 return h.text(
                     `${children.map((item) => item.toString()).join('')} (${
                         token.href
