@@ -86,11 +86,22 @@ function renderInlineToken(token: Token, platform?: string): h | undefined {
         if (!cap) {
             return h('text', { content: token.text })
         }
-        if (cap[2] === 'img') {
+        const tag = cap[2].toLowerCase()
+        if (tag === 'img') {
             if (cap[1]) return
             const src = cap[3].match(/src="([^"]+)"/)
             if (src) return h.image(src[1])
         }
+        if (tag === 'br') {
+            return h('text', { content: '\n' })
+        }
+        if (
+            cap[1] &&
+            ['p', 'div', 'section', 'article', 'li', 'ul', 'ol'].includes(tag)
+        ) {
+            return h('text', { content: '\n' })
+        }
+        return h('text', { content: '' })
     }
 }
 

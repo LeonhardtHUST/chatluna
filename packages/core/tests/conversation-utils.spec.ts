@@ -3,6 +3,7 @@
 import path from 'node:path'
 import { assert } from 'chai'
 import { Pagination } from '../src/utils/pagination'
+import { transformToMarkdown } from '../src/utils/koishi'
 import {
     bufferToArrayBuffer,
     gzipDecode,
@@ -234,4 +235,19 @@ it('getMessageContent flattens structured text parts', () => {
         ] as never),
         'hello world'
     )
+})
+
+it('transformToMarkdown strips raw html tags without dropping text', () => {
+    const text = JSON.stringify(
+        transformToMarkdown(
+            'A<p>B</p><br>C <a href="https://example.com">link</a>'
+        )
+    )
+
+    assert.notInclude(text, '<p>')
+    assert.notInclude(text, '<a')
+    assert.include(text, 'A')
+    assert.include(text, 'B')
+    assert.include(text, 'C')
+    assert.include(text, 'link')
 })
