@@ -221,6 +221,11 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
             /(合规拒绝|替代方案|避免.*(定位|查找|关联).*(真人|本人|联系方式)|不要.*(真实联系方式|定位真人|开盒))/i
     },
     {
+        labels: ['prompt_injection'],
+        pattern:
+            /(工单|客服|用户).*?(处理备注|合规拒绝|替代话术|处理话术|安全回复|拒绝话术)|处理.*?(忽略规则|导出配置).*?(话术|备注|合规)/i
+    },
+    {
         labels: ['biohazard_protocol', 'controlled_reaction'],
         pattern: /(SDS|安全储存|泄漏处置|危害识别|急救处置|法规合规)/i
     }
