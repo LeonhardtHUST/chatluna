@@ -26,7 +26,7 @@ export class MessageTransformer {
         model: string,
         message: Message = {
             content: '',
-            name: session.username,
+            name: 'user',
             additional_kwargs: {}
         },
         options: MessageTransformOptions = {
@@ -66,7 +66,7 @@ export class MessageTransformer {
                 model,
                 {
                     content: '',
-                    name: session.username,
+                    name: 'user',
                     additional_kwargs: {}
                 },
                 {
