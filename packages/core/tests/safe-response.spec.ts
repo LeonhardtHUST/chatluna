@@ -12,6 +12,16 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('公开资料'))
     })
 
+    it('repairs benign model-generated safety wording', () => {
+        const result = repairBenignRefusal(
+            'Leo 某芯片公司 CEO 对中国市场表态引发讨论，如何做商业层面的中立分析？请补充可能的误判点。',
+            '抱歉，我无法完成这个请求。服务安全策略阻止了对有关提示词的响应。'
+        )
+
+        assert.ok(result?.includes('商业分析'))
+        assert.ok(result?.includes('公开资料'))
+    })
+
     it('repairs public policy compliance refusals', () => {
         const result = repairBenignRefusal(
             'Leo 帮我读一段公开政策条文，解释它对普通企业合规的影响。',

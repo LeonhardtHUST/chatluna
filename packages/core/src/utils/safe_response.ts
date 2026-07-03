@@ -1,9 +1,19 @@
 export function repairBenignRefusal(prompt: string, reply: string) {
+    const text = reply.trim()
+
     if (
-        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行)|不能参与|sorry/i.test(
+        text ===
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。' ||
+        text ===
+            '基于模型内容安全策略，服务端 API 拒绝为本次内容提供响应。请求记录已存档备查。若有问题，请联系管理员。'
+    ) {
+        return null
+    }
+
+    if (
+        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行|完成)|不能参与|服务安全策略阻止|sorry/i.test(
             reply
-        ) ||
-        /服务安全策略阻止|基于模型内容安全策略/.test(reply)
+        )
     ) {
         return null
     }

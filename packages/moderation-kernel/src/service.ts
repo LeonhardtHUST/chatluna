@@ -239,7 +239,7 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
     {
         labels: ['privacy_linkage', 'privacy_osint_risk'],
         pattern:
-            /(合规拒绝|替代方案|避免.*(定位|查找|关联).*(真人|本人|联系方式)|不要.*(真实联系方式|定位真人|开盒))/i
+            /(合规拒绝|替代方案|不涉及.*(真人身份|身份关联|真人关联)|避免.*(定位|查找|关联).*(真人|本人|联系方式)|不要.*(真实联系方式|定位真人|开盒))/i
     },
     {
         labels: ['prompt_injection'],

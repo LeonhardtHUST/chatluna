@@ -382,6 +382,32 @@ describe('moderation service', () => {
         await app.stop()
     })
 
+    it('allows aggregate public account analysis after privacy review keyword match', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                rules: {
+                    ...DEFAULT_MODERATION_CONFIG.rules,
+                    reviewKeywordGroups: [
+                        {
+                            name: 'privacy_osint_risk',
+                            keywords: ['公开账号']
+                        }
+                    ]
+                }
+            })
+        )
+        const decision = await service.evaluateInput(
+            session,
+            '请分析品牌公开账号的内容运营表现，不涉及真人身份关联'
+        )
+
+        assert.equal(decision.action, 'allow')
+        assert.include(decision.labels, 'privacy_osint_risk')
+        assert.include(decision.reasons, 'semantic.safe_context')
+        await app.stop()
+    })
+
     it('blocks credential checking and batch login requests', async () => {
         const { app, service } = await createService(
             cfg({
