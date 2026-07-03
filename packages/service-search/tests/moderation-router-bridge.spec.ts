@@ -103,6 +103,18 @@ describe('service-search moderation router parser', () => {
         assert.include(source, '不需要')
     })
 
+    it('does not mechanically search for search-syntax risk training', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, '搜索语法')
+        assert.include(source, 'google dork')
+        assert.include(source, '替代流程')
+        assert.include(source, 'return false')
+    })
+
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {
         const source = readFileSync(
             require.resolve('../src/chain/browsing_chain'),

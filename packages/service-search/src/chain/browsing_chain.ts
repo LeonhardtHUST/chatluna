@@ -1092,6 +1092,15 @@ function fixedUrlAction(input: string): SearchAction | null {
 }
 
 function searchTriggered(input: string, searchTriggerKeywords: string[]) {
+    if (
+        /(搜索语法|高级搜索|搜索指令|google dork|dork|网盘资料)/i.test(input) &&
+        /(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
+            input
+        )
+    ) {
+        return false
+    }
+
     return searchTriggerKeywords.some((keyword) =>
         input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
     )
