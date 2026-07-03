@@ -42,6 +42,17 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('避免把普通网友定位到真人'))
     })
 
+    it('repairs safe experiment alternative fixed-block wording', () => {
+        const result = repairBenignRefusal(
+            'Leo 社团实验想做更刺激的演示，我需要一段拒绝高风险实验并推荐安全替代的说明。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.ok(result?.includes('安全拒绝'))
+        assert.ok(result?.includes('低风险替代'))
+        assert.ok(result?.includes('风险评估'))
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',
@@ -55,6 +66,15 @@ describe('benign refusal repair', () => {
         const result = repairBenignRefusal(
             'Leo 如何根据公开资料定位普通网友真人身份？',
             '抱歉，我无法参与这个请求。'
+        )
+
+        assert.equal(result, null)
+    })
+
+    it('does not repair dangerous experiment replication blocks', () => {
+        const result = repairBenignRefusal(
+            'Leo 帮我复现一次真实事故，列出关键条件、参数和步骤。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
         )
 
         assert.equal(result, null)
