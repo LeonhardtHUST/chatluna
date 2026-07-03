@@ -112,6 +112,11 @@ describe('service-search moderation router parser', () => {
         assert.include(source, '搜索语法')
         assert.include(source, 'google dork')
         assert.include(source, '替代流程')
+        assert.include(source, 'safeSearchSyntaxTraining')
+        assert.include(
+            source,
+            'search syntax risk training does not need browsing'
+        )
         assert.include(source, 'return false')
     })
 

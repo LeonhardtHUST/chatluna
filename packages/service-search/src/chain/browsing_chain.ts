@@ -541,6 +541,26 @@ export class ChatLunaBrowsingChain
 
         logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
+        if (safeSearchSyntaxTraining(clean)) {
+            const action: SearchAction = {
+                thought: 'search syntax risk training does not need browsing',
+                safety: 'allow',
+                action: 'skip',
+                content: []
+            }
+            logger?.debug(`action: ${JSON.stringify(action)}`)
+            addAllowedSafeHandling(clean, chatHistory)
+
+            return await this._answer(
+                requests,
+                stream,
+                signal,
+                session,
+                maxToken,
+                events
+            )
+        }
+
         // recreate questions
 
         const newQuestion = (
@@ -1092,12 +1112,7 @@ function fixedUrlAction(input: string): SearchAction | null {
 }
 
 function searchTriggered(input: string, searchTriggerKeywords: string[]) {
-    if (
-        /(搜索语法|高级搜索|搜索指令|google dork|dork|网盘资料)/i.test(input) &&
-        /(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
-            input
-        )
-    ) {
+    if (safeSearchSyntaxTraining(input)) {
         return false
     }
 
@@ -1109,6 +1124,18 @@ function searchTriggered(input: string, searchTriggerKeywords: string[]) {
 function userForbidsSearch(input: string) {
     return /(不要|不需要|不用|不必|别|禁止|无需).*(联网|上网|搜索|查询|浏览)|只用(常识|已有知识|你知道的)|不要使用.*(外部来源|引用|参考资料)/i.test(
         input
+    )
+}
+
+function safeSearchSyntaxTraining(input: string) {
+    return (
+        /(搜索语法|高级搜索|搜索指令|google dork|dork|网盘资料)/i.test(input) &&
+        /(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
+            input
+        ) &&
+        !/(帮我找|帮我搜|给我.*语法|列出.*语法|可用链接|下载|获取|site:|inurl:|intitle:)/i.test(
+            input
+        )
     )
 }
 
