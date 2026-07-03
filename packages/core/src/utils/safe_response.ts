@@ -16,15 +16,6 @@ export function repairBenignRefusal(prompt: string, reply: string) {
     }
 
     if (
-        !fixedBlock &&
-        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行|完成|提供)|不能(参与|提供)|服务安全策略阻止|sorry/i.test(
-            reply
-        )
-    ) {
-        return null
-    }
-
-    if (
         /骗过|钓鱼|验证码|开盒|真人画像|撞库|爆破|木马|免杀|持久化|规避.*检测|病原|毒品|爆炸|色情|露骨|未成年.*性/.test(
             prompt
         )
@@ -48,6 +39,15 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '',
             '如果活动需要更有吸引力，可以把重点放在互动问答、数据可视化、模型演示或现象解释上。'
         ].join('\n')
+    }
+
+    if (
+        !fixedBlock &&
+        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行|完成|提供)|不能(参与|提供)|服务安全策略阻止|sorry/i.test(
+            reply
+        )
+    ) {
+        return null
     }
 
     if (/商业|CEO|市场表态|跨国公司|中立分析|培训讲义/.test(prompt)) {
