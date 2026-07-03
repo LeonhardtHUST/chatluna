@@ -83,8 +83,22 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         action: 'block',
         severity: 5,
         riskScore: 85,
-        pattern:
-            /(撞库.*(脚本|工具|执行|验证|登录|批量|尝试|账号|密码|可用)|批量.*(验证|登录|测试).*(邮箱|账号|账户|密码)|邮箱密码组合|旧账号.*(验证|可用|登录|确认)|账号.*可用性|爆破密码|绕过.*(登录限制|验证码|风控)|确认.*旧账号.*还能用)/i
+        pattern: new RegExp(
+            [
+                '撞库.*(脚本|工具|执行|验证|登录|批量|尝试|账号|密码|可用)',
+                '批量.*(验证|登录|测试).*(邮箱|账号|账户|密码)',
+                '邮箱密码组合',
+                '旧账号.*(验证|可用|登录|确认)',
+                '账号.*可用性',
+                '爆破密码',
+                '绕过.*(登录限制|验证码|风控)',
+                '确认.*旧账号.*还能用',
+                '证明.*(同事|别人|员工)?.*密码.*弱.*(验证流程|流程|演示|测试)',
+                '同事.*(密码|旧密码).*(验证|证明|演示|测试)',
+                'hashcat.*(命令|字典|rockyou|破解)'
+            ].join('|'),
+            'i'
+        )
     },
     {
         label: 'phishing_social',
@@ -118,8 +132,44 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
         action: 'block',
         severity: 4,
         riskScore: 75,
-        pattern:
-            /(实验记录.*(关键条件|实验参数).*(复现|少走弯路|补得?更完整|补完整)|补.*(反应条件|实验参数).*(复现实验|少走弯路))/i
+        pattern: new RegExp(
+            [
+                '实验记录.*(关键条件|实验参数).*(复现|少走弯路|补得?更完整|补完整)',
+                '补.*(反应条件|实验参数).*(复现实验|少走弯路)',
+                '安全培训.*(真实事故|关键条件|复现|更刺激|更震撼|别写得像违规)',
+                '化工.*(事故链|泄漏|点火|爆燃|闪爆).*(复现|演示|培训)',
+                '(更刺激|更震撼|震撼|刺激).*(关键条件|演示|复现)',
+                '(关键条件|演示|复现).*(更刺激|更震撼|震撼|刺激)',
+                '增强.*(钠水反应|助燃|可燃气体|爆燃|火焰|点火).*(演示|效果|条件)',
+                '高浓度.*(反应|火焰|喷洒)',
+                '火焰喷洒'
+            ].join('|'),
+            'i'
+        )
+    },
+    {
+        label: 'sensitive_material_distribution',
+        reason: 'semantic.sensitive_material_distribution',
+        action: 'block',
+        severity: 4,
+        riskScore: 75,
+        pattern: new RegExp(
+            [
+                '争议资料.*(做成包|资料包|转发|分享|传播).*(别写敏感词|不写敏感词|去敏|方便.*转发|触发审核)',
+                '敏感词替换.*(转发|传播|资料|群)',
+                '去敏.*(标题|卡片|传播|转发)',
+                '加密.*(链接|压缩包|云盘|提取码)',
+                '分信道.*(密码|口令)',
+                '私聊口令',
+                '图片切分',
+                '长图转发',
+                'PDF.*(转发|长图)',
+                '匿名编号.*(压缩包|资料)',
+                '文件命名.*(隐藏|争议|敏感)',
+                '不触碰敏感词.*(打包|转发|传播)'
+            ].join('|'),
+            'i'
+        )
     },
     {
         label: 'controlled_reaction',
@@ -267,7 +317,8 @@ const CRITICAL_HISTORY_LABELS = new Set([
     'political_mobilization',
     'prompt_injection',
     'privacy_linkage',
-    'search_misuse'
+    'search_misuse',
+    'sensitive_material_distribution'
 ])
 
 function getUserKey(sessionOrUserKey: ModerationSession | string): string {
