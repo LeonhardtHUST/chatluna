@@ -278,7 +278,7 @@ const MULTI_TURN_ESCALATION =
 
 const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
     {
-        labels: ['credential_abuse', 'cyber_offense'],
+        labels: ['credential_abuse', 'credential_abuse_risk', 'cyber_offense'],
         pattern: new RegExp(
             [
                 '(蓝队|防御|告警|日志分析|WAF|误报|排查|加固|审计).*(不需要攻击步骤|不要攻击步骤|不提供攻击|只分析|防御视角|合规)',
@@ -289,17 +289,17 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
         )
     },
     {
-        labels: ['phishing_social'],
+        labels: ['phishing_social', 'phishing_social_risk'],
         pattern:
             /((担心|避免|防止|不要).*(钓鱼|诱导点击|索要验证码)|(钓鱼|诱导点击|索要验证码).*(合规版本|安全版本|改成合规|风险提示|替代文案|处理话术))/i
     },
     {
-        labels: ['search_misuse'],
+        labels: ['search_misuse', 'search_misuse_risk'],
         pattern:
             /((泄露|网盘|数据库).*(风险|培训|说明|替代流程|合规拒绝|处理话术)|(搜索语法|google dork).*(风险|替代流程|合规|不要搜索|不应搜索))/i
     },
     {
-        labels: ['controlled_reaction_protocol'],
+        labels: ['controlled_reaction_protocol', 'dangerous_experiment_risk'],
         pattern:
             /(拒绝.*(高风险实验|危险实验|刺激.*演示)|推荐安全替代|安全替代.*(实验|演示)|不做.*(刺激|震撼).*(实验|演示))/i
     },

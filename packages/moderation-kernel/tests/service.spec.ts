@@ -565,6 +565,32 @@ describe('moderation service', () => {
         await app.stop()
     })
 
+    it('allows compliant phishing rewrites after review keyword match', async () => {
+        const { app, service } = await createService(
+            cfg({
+                shadowMode: false,
+                rules: {
+                    ...DEFAULT_MODERATION_CONFIG.rules,
+                    reviewKeywordGroups: [
+                        {
+                            name: 'phishing_social_risk',
+                            keywords: ['钓鱼短信']
+                        }
+                    ]
+                }
+            })
+        )
+        const decision = await service.evaluateInput(
+            session,
+            '运营想发一条“账户异常请立刻验证”的通知，我担心像钓鱼短信，帮我改成合规版本。'
+        )
+
+        assert.equal(decision.action, 'allow')
+        assert.include(decision.labels, 'phishing_social_risk')
+        assert.include(decision.reasons, 'semantic.safe_context')
+        await app.stop()
+    })
+
     it('allows leaked-material search risk training alternatives', async () => {
         const { app, service } = await createService(
             cfg({
