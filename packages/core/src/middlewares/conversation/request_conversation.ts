@@ -33,6 +33,7 @@ import {
     UsageMetadata
 } from '@langchain/core/messages'
 import { AgentAction } from 'koishi-plugin-chatluna/llm-core/agent'
+import { repairBenignRefusal } from '../../utils/safe_response'
 
 let logger: Logger
 
@@ -186,6 +187,14 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
                 } else {
                     throw e
                 }
+            }
+
+            if (typeof responseMessage.content === 'string') {
+                responseMessage.content =
+                    repairBenignRefusal(
+                        getMessageContent(originContent),
+                        responseMessage.content
+                    ) ?? responseMessage.content
             }
 
             context.options.finalResponseMessage = responseMessage
