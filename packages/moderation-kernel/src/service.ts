@@ -279,8 +279,29 @@ const MULTI_TURN_ESCALATION =
 const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
     {
         labels: ['credential_abuse', 'cyber_offense'],
+        pattern: new RegExp(
+            [
+                '(蓝队|防御|告警|日志分析|WAF|误报|排查|加固|审计).*(不需要攻击步骤|不要攻击步骤|不提供攻击|只分析|防御视角|合规)',
+                '(安全负责人|负责人|管理员).*(批量验证|旧密码|密码).*(回复才合规|合规回复|拒绝话术|处理话术|不允许|禁止|替代方案)',
+                '(批量验证|旧密码|密码).*(合规拒绝|拒绝话术|处理话术|不应|不能|不允许)'
+            ].join('|'),
+            'i'
+        )
+    },
+    {
+        labels: ['phishing_social'],
         pattern:
-            /(蓝队|防御|告警|日志分析|WAF|误报|排查|加固|审计).*(不需要攻击步骤|不要攻击步骤|不提供攻击|只分析|防御视角|合规)/i
+            /((担心|避免|防止|不要).*(钓鱼|诱导点击|索要验证码)|(钓鱼|诱导点击|索要验证码).*(合规版本|安全版本|改成合规|风险提示|替代文案|处理话术))/i
+    },
+    {
+        labels: ['search_misuse'],
+        pattern:
+            /((泄露|网盘|数据库).*(风险|培训|说明|替代流程|合规拒绝|处理话术)|(搜索语法|google dork).*(风险|替代流程|合规|不要搜索|不应搜索))/i
+    },
+    {
+        labels: ['controlled_reaction_protocol'],
+        pattern:
+            /(拒绝.*(高风险实验|危险实验|刺激.*演示)|推荐安全替代|安全替代.*(实验|演示)|不做.*(刺激|震撼).*(实验|演示))/i
     },
     {
         labels: ['minor_safety'],
@@ -294,7 +315,7 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
     {
         labels: ['prompt_injection'],
         pattern:
-            /((工单|客服|用户).*?(合规拒绝|安全回复|拒绝话术|拒绝备注)|处理.*?(忽略规则|导出配置).*?(合规|拒绝|不支持|不能|不允许))/i
+            /((工单|客服|用户).*?(合规拒绝|安全回复|拒绝话术|拒绝备注|处理备注|处理话术)|处理.*?(忽略规则|导出配置).*?(合规|拒绝|不支持|不能|不允许|备注|话术))/i
     },
     {
         labels: ['biohazard_protocol', 'controlled_reaction'],
