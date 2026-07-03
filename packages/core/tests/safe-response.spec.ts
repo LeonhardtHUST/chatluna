@@ -53,6 +53,18 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('风险评估'))
     })
 
+    it('repairs unsafe experiment examples in refusal wording', () => {
+        const result = repairBenignRefusal(
+            'Leo 社团实验想做更刺激的演示，我需要一段拒绝高风险实验并推荐安全替代的说明。',
+            '我无法提供高风险实验内容。推荐大象牙膏，使用过氧化氢、洗洁精和碘化钾产生大量泡沫。'
+        )
+
+        assert.ok(result?.includes('安全拒绝'))
+        assert.ok(result?.includes('低风险替代'))
+        assert.equal(result?.includes('过氧化氢'), false)
+        assert.equal(result?.includes('碘化钾'), false)
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',

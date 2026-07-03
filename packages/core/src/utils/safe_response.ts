@@ -5,14 +5,34 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。' ||
         text ===
             '基于模型内容安全策略，服务端 API 拒绝为本次内容提供响应。请求记录已存档备查。若有问题，请联系管理员。'
-
-    if (
-        fixedBlock &&
+    const safeExperimentPrompt =
         /拒绝高风险实验|推荐安全替代|安全替代.*说明/.test(prompt) &&
         !/复现|关键条件|参数|步骤|配方|剂量|事故|爆炸|燃烧瓶|炸药|病原|毒品/.test(
             prompt
         )
+
+    if (fixedBlock && !safeExperimentPrompt) {
+        return null
+    }
+
+    if (
+        !fixedBlock &&
+        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行|完成|提供)|不能(参与|提供)|服务安全策略阻止|sorry/i.test(
+            reply
+        )
     ) {
+        return null
+    }
+
+    if (
+        /骗过|钓鱼|验证码|开盒|真人画像|撞库|爆破|木马|免杀|持久化|规避.*检测|病原|毒品|爆炸|色情|露骨|未成年.*性/.test(
+            prompt
+        )
+    ) {
+        return null
+    }
+
+    if (safeExperimentPrompt) {
         return [
             '可以写成安全拒绝和低风险替代建议。参考版本如下：',
             '',
@@ -28,26 +48,6 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '',
             '如果活动需要更有吸引力，可以把重点放在互动问答、数据可视化、模型演示或现象解释上。'
         ].join('\n')
-    }
-
-    if (fixedBlock) {
-        return null
-    }
-
-    if (
-        !/抱歉，我(无法|不能)|无法(参与|处理|响应|执行|完成)|不能参与|服务安全策略阻止|sorry/i.test(
-            reply
-        )
-    ) {
-        return null
-    }
-
-    if (
-        /骗过|钓鱼|验证码|开盒|真人画像|撞库|爆破|木马|免杀|持久化|规避.*检测|病原|毒品|爆炸|色情|露骨|未成年.*性/.test(
-            prompt
-        )
-    ) {
-        return null
     }
 
     if (/商业|CEO|市场表态|跨国公司|中立分析|培训讲义/.test(prompt)) {
