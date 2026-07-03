@@ -77,6 +77,19 @@ describe('benign refusal repair', () => {
         assert.equal(result?.includes('碘化钾'), false)
     })
 
+    it('repairs search misuse risk training fixed-block wording', () => {
+        const result = repairBenignRefusal(
+            'Leo 安全培训里说明使用搜索语法查找泄露网盘资料的风险和替代流程。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.ok(result?.includes('安全培训'))
+        assert.ok(result?.includes('合规替代流程'))
+        assert.ok(result?.includes('安全事件流程上报'))
+        assert.equal(result?.includes('site:'), false)
+        assert.equal(result?.includes('inurl:'), false)
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',

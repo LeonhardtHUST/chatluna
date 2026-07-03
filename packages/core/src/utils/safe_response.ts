@@ -10,8 +10,15 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !/复现|关键条件|参数|步骤|配方|剂量|事故|爆炸|燃烧瓶|炸药|病原|毒品/.test(
             prompt
         )
+    const safeSearchMisusePrompt =
+        /(搜索语法|高级搜索|搜索指令|google dork|dork|网盘资料).*(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
+            prompt
+        ) &&
+        !/(帮我找|帮我搜|给我.*语法|列出.*语法|可用链接|下载|获取|site:|inurl:|intitle:)/i.test(
+            prompt
+        )
 
-    if (fixedBlock && !safeExperimentPrompt) {
+    if (fixedBlock && !safeExperimentPrompt && !safeSearchMisusePrompt) {
         return null
     }
 
@@ -21,6 +28,26 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         )
     ) {
         return null
+    }
+
+    if (safeSearchMisusePrompt) {
+        return [
+            '可以从安全培训和合规替代流程角度说明，但不应提供可复用的搜索语法、检索关键词或获取路径。',
+            '',
+            '建议这样表达：',
+            '',
+            '使用搜索技巧主动寻找疑似泄露资料，容易带来合规、隐私和安全风险。即使资料看似公开，也可能涉及未授权访问、个人信息、商业秘密或恶意文件传播。',
+            '',
+            '更合规的替代流程是：',
+            '',
+            '1. 如果发现疑似泄露线索，不继续扩散、下载或二次检索。',
+            '2. 记录最小必要信息，例如发现时间、来源平台类型和风险描述，不保存敏感内容本身。',
+            '3. 交给安全、法务或数据负责人通过正式流程核验。',
+            '4. 对内部资料建立资产台账、访问控制、外发审批和水印追踪。',
+            '5. 培训重点放在如何识别泄露风险、如何报告和如何降低再次泄露，而不是演示如何寻找资料。',
+            '',
+            '如果要写成群内提醒，可以用一句话概括：不要主动搜索或传播疑似泄露资料，发现线索请按安全事件流程上报。'
+        ].join('\n')
     }
 
     if (safeExperimentPrompt) {
