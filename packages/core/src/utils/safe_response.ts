@@ -29,13 +29,22 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !/(帮我忽略|帮我绕过|怎么绕过|直接导出|导出密钥|导出 token|导出密码)/i.test(
             prompt
         )
+    const safePhishingPrompt =
+        /(账户异常.*验证|立刻验证|立即验证)/.test(prompt) &&
+        /(担心.*钓鱼|像钓鱼|合规版本|改成合规|处理话术|直接发给对方)/.test(
+            prompt
+        ) &&
+        !/(骗过|提高点击|诱导点击|索要验证码|索要密码|仿冒|伪装官方|钓鱼页面)/.test(
+            prompt
+        )
 
     if (
         fixedBlock &&
         !safeExperimentPrompt &&
         !safeSearchMisusePrompt &&
         !safeCredentialPrompt &&
-        !safePromptBypassPrompt
+        !safePromptBypassPrompt &&
+        !safePhishingPrompt
     ) {
         return null
     }
@@ -43,7 +52,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
     if (
         /骗过|钓鱼|验证码|开盒|真人画像|撞库|爆破|木马|免杀|持久化|规避.*检测|病原|毒品|爆炸|色情|露骨|未成年.*性/.test(
             prompt
-        )
+        ) &&
+        !safePhishingPrompt
     ) {
         return null
     }
@@ -100,6 +110,22 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '您好，关于您提到的“忽略规则导出配置”，为保障数据安全和配置一致性，我们不能直接绕过系统规则执行导出。请您说明需要导出的配置范围、业务目的和遇到的具体问题。若属于正常备份、迁移或排障需求，我们会按标准流程协助处理；若需要特殊权限或规则调整，需要由管理员完成审批后再推进。',
             '',
             '这样回复既保留了解决问题的入口，也不会承诺跳过安全规则。'
+        ].join('\n')
+    }
+
+    if (safePhishingPrompt) {
+        return [
+            '可以改成合规安全通知，但不应制造紧迫感、诱导点击链接或索要验证码。参考话术如下：',
+            '',
+            '您好，我们注意到账户安全状态可能需要您确认。为保护您的账户，请您自行打开官方 App 或官网，在“账户安全”或“消息中心”查看相关提醒。',
+            '',
+            '请注意：',
+            '',
+            '1. 我们不会通过私信、短信或群消息索要密码、验证码或支付信息。',
+            '2. 请不要点击来源不明的链接，也不要向任何人转发验证码。',
+            '3. 如有疑问，请通过 App 内客服、官网公布的客服电话或线下官方渠道核实。',
+            '',
+            '如果这是一条群公告，可以补充说明：本通知仅用于提醒大家提高账户安全意识，具体处理请以官方系统内提示为准。'
         ].join('\n')
     }
 
