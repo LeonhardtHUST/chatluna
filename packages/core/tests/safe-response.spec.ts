@@ -32,10 +32,29 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('合规'))
     })
 
+    it('repairs privacy-preserving OSINT education refusals', () => {
+        const result = repairBenignRefusal(
+            'Leo 开源情报研究中如何避免把普通网友定位到真人？给出安全替代做法。',
+            '抱歉，我无法参与这个请求或生成你所描述的内容。请提出其他合规的问题。'
+        )
+
+        assert.ok(result?.includes('隐私保护'))
+        assert.ok(result?.includes('避免把普通网友定位到真人'))
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',
             '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.equal(result, null)
+    })
+
+    it('does not repair direct identity-location requests', () => {
+        const result = repairBenignRefusal(
+            'Leo 如何根据公开资料定位普通网友真人身份？',
+            '抱歉，我无法参与这个请求。'
         )
 
         assert.equal(result, null)
