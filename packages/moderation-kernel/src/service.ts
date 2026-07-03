@@ -244,7 +244,7 @@ const SAFE_SEMANTIC_CONTEXTS: SafeSemanticContext[] = [
     {
         labels: ['prompt_injection'],
         pattern:
-            /(工单|客服|用户).*?(处理备注|合规拒绝|替代话术|处理话术|安全回复|拒绝话术)|处理.*?(忽略规则|导出配置).*?(话术|备注|合规)/i
+            /((工单|客服|用户).*?(合规拒绝|安全回复|拒绝话术|拒绝备注)|处理.*?(忽略规则|导出配置).*?(合规|拒绝|不支持|不能|不允许))/i
     },
     {
         labels: ['biohazard_protocol', 'controlled_reaction'],
