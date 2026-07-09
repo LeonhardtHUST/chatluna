@@ -53,6 +53,22 @@ describe('benign refusal repair', () => {
         )
     })
 
+    it('keeps heading and numbered list separated in text renderer', () => {
+        const result = transformToMarkdown(
+            '## 一、基础检查 (Basic Checks)\n\n1. 确认条件类型的分支是否被触发',
+            'sandbox'
+        )
+            .map((el) => el.toString())
+            .join('')
+
+        assert.ok(
+            result.includes(
+                '一、基础检查 (Basic Checks)\n1. 确认条件类型的分支是否被触发'
+            )
+        )
+        assert.equal(result.includes('Basic Checks)1.'), false)
+    })
+
     it('repairs inline citation links in final markdown', () => {
         const result = repairReferences(
             '研究院已成立^1 ([华中科技大学低空经济研究院揭牌成立](https://example.com/news))。'
