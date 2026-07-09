@@ -194,6 +194,7 @@ export const Config: Schema<Config> = Schema.intersect([
    - Present information in logical order
    - Include bullet points for clarity
    - Highlight important quotes with proper attribution
+   - Do not mention internal search actions, search query arrays, or phrases such as "I will search first"
 
 Context:
 <context>
