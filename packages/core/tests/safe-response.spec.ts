@@ -3,6 +3,7 @@ import {
     repairBenignRefusal,
     repairReferences
 } from '../src/utils/safe_response'
+import { transformToMarkdown } from '../src/utils/koishi'
 
 describe('benign refusal repair', () => {
     it('repairs final references markdown', () => {
@@ -14,6 +15,21 @@ describe('benign refusal repair', () => {
         assert.ok(result.includes('\n[^2]: [低空起飞](https://example.com/a)'))
         assert.ok(result.includes('\n[^3]: [Other](https://example.com/b)'))
         assert.ok(result.includes('\n注：来源较弱。'))
+    })
+
+    it('keeps reference markdown links in text renderer', () => {
+        const result = transformToMarkdown(
+            'References:\n[^1]: [标题](https://example.com/a)',
+            'sandbox'
+        )
+            .map((el) => el.toString())
+            .join('')
+
+        assert.ok(result.includes('[^1]: [标题](https://example.com/a)'))
+        assert.equal(
+            result.includes('[^1]: 标题 (https://example.com/a)'),
+            false
+        )
     })
 
     it('repairs inline citation links in final markdown', () => {

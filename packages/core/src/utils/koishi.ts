@@ -116,6 +116,14 @@ function renderInlineToken(token: Token, platform?: string): h | undefined {
 }
 
 function renderToken(token: Token, platform?: string): h | h[] {
+    if (
+        token.type === 'paragraph' &&
+        isTextPlatform(platform) &&
+        /^\[\^\d+\]: \[[^\]\n]+\]\(https?:\/\/[^)\s]+\)$/im.test(token.raw)
+    ) {
+        return h.text(token.raw)
+    }
+
     let children: h[] = []
     if (token['tokens'] && token['tokens'].length > 0) {
         children = render(token['tokens'], platform)
