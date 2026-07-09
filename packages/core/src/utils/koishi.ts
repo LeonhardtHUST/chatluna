@@ -135,6 +135,9 @@ function renderToken(token: Token, platform?: string): h | h[] {
 
     if (children.length > 0) {
         if (token.type === 'paragraph') {
+            if (isTextPlatform(platform)) {
+                return [...children, h.text('\n')]
+            }
             return h('p', children)
         } else if (token.type === 'heading' && isTextPlatform(platform)) {
             return [...children, h.text('\n')]

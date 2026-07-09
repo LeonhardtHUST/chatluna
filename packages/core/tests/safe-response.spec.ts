@@ -69,6 +69,18 @@ describe('benign refusal repair', () => {
         assert.equal(result.includes('Basic Checks)1.'), false)
     })
 
+    it('keeps paragraph and bullet list separated in text renderer', () => {
+        const result = transformToMarkdown(
+            '成立背景与架构\n- 华中科技大学低空经济研究院',
+            'sandbox'
+        )
+            .map((el) => el.toString())
+            .join('')
+
+        assert.ok(result.includes('成立背景与架构\n- 华中科技大学低空经济研究院'))
+        assert.equal(result.includes('成立背景与架构-'), false)
+    })
+
     it('repairs inline citation links in final markdown', () => {
         const result = repairReferences(
             '研究院已成立^1 ([华中科技大学低空经济研究院揭牌成立](https://example.com/news))。'
