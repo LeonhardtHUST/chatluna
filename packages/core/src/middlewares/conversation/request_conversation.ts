@@ -450,10 +450,12 @@ async function sendMessage(
     text: Fragment,
     config: Config
 ) {
+    const content = typeof text === 'string' ? text : text.toString()
+
     await sendRenderedMessage(
         context,
         {
-            content: typeof text === 'string' ? text : text.toString()
+            content: repairReferences(content)
         },
         config
     )

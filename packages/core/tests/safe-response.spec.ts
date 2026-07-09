@@ -17,6 +17,16 @@ describe('benign refusal repair', () => {
         assert.ok(result.includes('\n注：来源较弱。'))
     })
 
+    it('repairs streamed references split after title', () => {
+        const result = repairReferences(
+            'References\n[^1]: [标题](https://example.com/a)'
+        )
+
+        assert.ok(
+            result.includes('References:\n[^1]: [标题](https://example.com/a)')
+        )
+    })
+
     it('keeps reference markdown links in text renderer', () => {
         const result = transformToMarkdown(
             'References:\n[^1]: [标题](https://example.com/a)',
