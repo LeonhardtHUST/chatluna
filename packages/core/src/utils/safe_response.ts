@@ -376,3 +376,55 @@ export function repairBenignRefusal(prompt: string, reply: string) {
 
     return null
 }
+
+export function repairReferences(reply: string) {
+    const refs = new Map<string, { title: string; url: string }>()
+    let result = reply
+        .replace(/<\/?p>/gi, '\n')
+        .replace(/（/g, '(')
+        .replace(/）/g, ')')
+        .replace(
+            /\^(\d+)\s*\(\s*\[([^\]\n]+)\]\((https?:\/\/[^)\s]+)\)\s*\)/g,
+            (_match, id: string, title: string, url: string) => {
+                refs.set(id, {
+                    title: title.trim(),
+                    url: url.trim()
+                })
+                return `[^${id}]`
+            }
+        )
+        .replace(/\s*(\[\^\d+\]:)/g, '\n$1')
+        .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1## References\n')
+        .replace(/(^|\n)References\s*$/gim, '$1## References')
+        .replace(
+            /^\[\^(\d+)\]:\s*\[?([^\]\[(\n]+)\]?\s*\((https?:\/\/[^)\s]+)\)(.*)$/gim,
+            (_match, id: string, title: string, url: string, tail: string) =>
+                `[^${id}]: [${title.trim()}](${url.trim()})${
+                    tail.trim().length > 0 ? `\n${tail.trim()}` : ''
+                }`
+        )
+
+    const existing = new Set(
+        Array.from(result.matchAll(/^\[\^(\d+)\]:/gim)).map((item) => item[1])
+    )
+    const missing = Array.from(refs.entries()).filter(
+        ([id]) => !existing.has(id)
+    )
+
+    if (missing.length > 0) {
+        if (!/^## References\s*$/gim.test(result)) {
+            result += '\n\n## References'
+        }
+
+        result +=
+            '\n' +
+            missing
+                .map(
+                    ([id, item]) =>
+                        `[^${id}]: [${item.title.trim()}](${item.url.trim()})`
+                )
+                .join('\n')
+    }
+
+    return result.replace(/\n{3,}/g, '\n\n').trim()
+}

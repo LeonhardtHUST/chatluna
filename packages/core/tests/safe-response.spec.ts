@@ -1,7 +1,34 @@
 import assert from 'assert'
-import { repairBenignRefusal } from '../src/utils/safe_response'
+import {
+    repairBenignRefusal,
+    repairReferences
+} from '../src/utils/safe_response'
 
 describe('benign refusal repair', () => {
+    it('repairs final references markdown', () => {
+        const result = repairReferences(
+            'References[^2]: 低空起飞（https://example.com/a） [^3]: Other(https://example.com/b)注：来源较弱。'
+        )
+
+        assert.ok(result.includes('## References'))
+        assert.ok(result.includes('\n[^2]: [低空起飞](https://example.com/a)'))
+        assert.ok(result.includes('\n[^3]: [Other](https://example.com/b)'))
+        assert.ok(result.includes('\n注：来源较弱。'))
+    })
+
+    it('repairs inline citation links in final markdown', () => {
+        const result = repairReferences(
+            '研究院已成立^1 ([华中科技大学低空经济研究院揭牌成立](https://example.com/news))。'
+        )
+
+        assert.ok(result.includes('研究院已成立[^1]。'))
+        assert.ok(
+            result.includes(
+                '[^1]: [华中科技大学低空经济研究院揭牌成立](https://example.com/news)'
+            )
+        )
+    })
+
     it('repairs benign business analysis refusals', () => {
         const result = repairBenignRefusal(
             'Leo 某芯片公司 CEO 对中国市场表态引发讨论，如何做商业层面的中立分析？给一个 checklist。',
