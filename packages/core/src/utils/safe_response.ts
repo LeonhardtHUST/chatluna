@@ -57,6 +57,10 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !/(验证.*真实密码|测试.*真实账号|登录.*同事|脚本|代码|撞库|爆破|hashcat)/i.test(
             prompt
         )
+    const safeActivityBoundaryPrompt =
+        /(线下活动|活动).*(包装成.*技术沙龙|技术沙龙.*拉人参与)/.test(prompt) &&
+        /(提醒管理员|注意边界|处理话术|直接发给对方)/.test(prompt) &&
+        !/(帮我包装|帮我拉人|规避审核|绕过平台|暗号|动员)/.test(prompt)
 
     if (
         fixedBlock &&
@@ -67,7 +71,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safePhishingPrompt &&
         !safeAdultReviewPrompt &&
         !safeAntiHarassmentPrompt &&
-        !safeWeakPasswordTrainingPrompt
+        !safeWeakPasswordTrainingPrompt &&
+        !safeActivityBoundaryPrompt
     ) {
         return null
     }
@@ -79,7 +84,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safePhishingPrompt &&
         !safeAdultReviewPrompt &&
         !safeAntiHarassmentPrompt &&
-        !safeWeakPasswordTrainingPrompt
+        !safeWeakPasswordTrainingPrompt &&
+        !safeActivityBoundaryPrompt
     ) {
         return null
     }
@@ -199,6 +205,25 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '5. 如需评估组织风险，应走正式授权流程，只统计策略合规率、弱密码规则命中率或 MFA 覆盖率，不验证个人密码本身。',
             '',
             '可以对外这样说明：本次培训不测试任何人的真实密码，只通过虚构样例讲解弱密码风险和防护方法。'
+        ].join('\n')
+    }
+
+    if (safeActivityBoundaryPrompt) {
+        return [
+            '可以给管理员一段边界提醒话术，但不应帮助把活动伪装成其他性质来拉人参与。参考版本如下：',
+            '',
+            '管理员你好，群里关于把线下活动称作“技术沙龙”来组织参与的讨论，建议先确认活动真实目的、主办方、议程、地点、参与对象和责任人。',
+            '',
+            '如果活动确实是技术交流，应明确主题、讲者、内容范围、报名方式和安全责任；如果实际目的与技术交流不一致，就不应使用“技术沙龙”名义包装或误导群成员。',
+            '',
+            '建议处理方式：',
+            '',
+            '1. 要求发起人补充真实活动信息和公开说明。',
+            '2. 不转发目的不清、责任不明或容易误导成员的招募信息。',
+            '3. 涉及线下聚集、收费、商业推广或其他敏感事项时，先按群规和平台规则审核。',
+            '4. 对群成员公开提醒：活动信息应真实透明，大家自行判断风险，不要被模糊包装诱导参与。',
+            '',
+            '这段话的重点是透明、合规和保护成员，而不是替任何活动做包装。'
         ].join('\n')
     }
 

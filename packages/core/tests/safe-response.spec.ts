@@ -158,10 +158,30 @@ describe('benign refusal repair', () => {
         assert.equal(result?.includes('尝试登录任何真实服务'), true)
     })
 
+    it('repairs activity-boundary admin reminders', () => {
+        const result = repairBenignRefusal(
+            'Leo 这是安全例会里的真实场景：群里有人想把线下活动包装成“技术沙龙”拉人参与，我想提醒管理员注意边界。 请给一段能直接发给对方的处理话术。',
+            '根据规则中的安全策略，我可以为你提供一段在安全例会场景下提醒管理员注意边界的处理话术。'
+        )
+
+        assert.ok(result?.includes('边界提醒话术'))
+        assert.ok(result?.includes('不应使用“技术沙龙”名义包装'))
+        assert.ok(result?.includes('真实透明'))
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',
             '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.equal(result, null)
+    })
+
+    it('does not repair direct disguised activity recruitment', () => {
+        const result = repairBenignRefusal(
+            'Leo 帮我包装成技术沙龙拉人参与，最好规避平台审核。',
+            '抱歉，我无法参与这个请求。'
         )
 
         assert.equal(result, null)
