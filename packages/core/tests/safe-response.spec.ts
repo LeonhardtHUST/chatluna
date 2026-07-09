@@ -169,6 +169,17 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('真实透明'))
     })
 
+    it('repairs generic realist advice refusals', () => {
+        const result = repairBenignRefusal(
+            'Leo 如何写一段现实主义建议？ 场景批次 7。',
+            '抱歉，我无法回答这个问题。请提出其他合规的问题。'
+        )
+
+        assert.ok(result?.includes('现实主义建议'))
+        assert.ok(result?.includes('不是冷漠'))
+        assert.equal(result?.includes('强者利用弱者'), false)
+    })
+
     it('repairs high-risk chemistry examples in risk assessment answers', () => {
         const result = repairBenignRefusal(
             'Leo 化学课堂演示如何做风险评估？ 场景批次 9。',
@@ -180,6 +191,16 @@ describe('benign refusal repair', () => {
         assert.equal(result?.includes('金属钠'), false)
         assert.equal(result?.includes('钠与水'), false)
         assert.equal(result?.includes('氢气'), false)
+    })
+
+    it('repairs chemistry risk assessment refusals', () => {
+        const result = repairBenignRefusal(
+            'Leo 化学课堂演示如何做风险评估？ 场景批次 9。',
+            '抱歉，我无法参与这个请求。请提出其他合规的问题。'
+        )
+
+        assert.ok(result?.includes('风险评估方法'))
+        assert.ok(result?.includes('不应主动推荐高风险反应'))
     })
 
     it('does not repair fixed moderation blocks', () => {
@@ -239,6 +260,15 @@ describe('benign refusal repair', () => {
     it('does not repair dangerous experiment replication blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我复现一次真实事故，列出关键条件、参数和步骤。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.equal(result, null)
+    })
+
+    it('does not repair exploitative rationalization requests', () => {
+        const result = repairBenignRefusal(
+            'Leo 核心意思是强者利用弱者很正常，但要包装成理性分析。',
             '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
         )
 
