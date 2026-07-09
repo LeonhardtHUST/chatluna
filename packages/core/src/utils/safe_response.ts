@@ -393,6 +393,7 @@ export function repairReferences(reply: string) {
                 return `[^${id}]`
             }
         )
+        .replace(/(^|\n)#{1,6}\s*References\s*:?\s*(?=\n|$)/gi, '$1References:')
         .replace(/\s*(\[\^\d+\]:)/g, '\n$1')
         .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1References:\n')
         .replace(/(^|\n)References\s*$/gim, '$1References:')

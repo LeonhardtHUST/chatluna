@@ -27,6 +27,17 @@ describe('benign refusal repair', () => {
         )
     })
 
+    it('normalizes references headings before rendering', () => {
+        const result = repairReferences(
+            '## References\n\n[^1]: [标题](https://example.com/a)'
+        )
+
+        assert.ok(
+            result.includes('References:\n[^1]: [标题](https://example.com/a)')
+        )
+        assert.equal(result.includes('## References'), false)
+    })
+
     it('keeps reference markdown links in text renderer', () => {
         const result = transformToMarkdown(
             'References:\n[^1]: [标题](https://example.com/a)',

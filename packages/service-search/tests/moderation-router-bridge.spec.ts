@@ -181,6 +181,15 @@ describe('service-search moderation router parser', () => {
         assert.include(text, '\n注：来源2权威性较低。')
     })
 
+    it('normalizes references headings before rendering', () => {
+        const text = normalizeReferencesMarkdown(
+            '## References\n\n[^1]: [标题](https://example.com/a)'
+        )
+
+        assert.include(text, 'References:\n[^1]: [标题](https://example.com/a)')
+        assert.notInclude(text, '## References')
+    })
+
     it('extracts inline citation links into markdown references', () => {
         const text = normalizeReferencesMarkdown(
             '研究院已成立^1 ([华中科技大学低空经济研究院揭牌成立](https://example.com/news))。'
