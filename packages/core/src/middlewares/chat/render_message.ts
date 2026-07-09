@@ -3,6 +3,7 @@ import { Context, Element } from 'koishi'
 import { Config } from '../../config'
 import { ChainMiddlewareRunStatus, ChatChain } from '../../chains/chain'
 import { Message, RenderOptions } from '../../types'
+import { repairReferences } from '../../utils/safe_response'
 
 export function apply(ctx: Context, config: Config, chain: ChatChain) {
     chain
@@ -25,16 +26,19 @@ export async function renderMessage(
     message: Message,
     options?: RenderOptions
 ) {
-    return (await ctx.chatluna.renderer.render(message, options)).map(
-        (message) => {
-            const elements = message.element
-            if (elements instanceof Array) {
-                return elements
-            } else {
-                return [elements]
-            }
+    const msg =
+        typeof message.content === 'string'
+            ? { ...message, content: repairReferences(message.content) }
+            : message
+
+    return (await ctx.chatluna.renderer.render(msg, options)).map((message) => {
+        const elements = message.element
+        if (elements instanceof Array) {
+            return elements
+        } else {
+            return [elements]
         }
-    )
+    })
 }
 
 export async function markdownRenderMessage(ctx: Context, text: string) {
