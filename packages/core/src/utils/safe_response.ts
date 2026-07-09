@@ -51,6 +51,12 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         ) &&
         /(中立|不纵容|反骚扰|处理话术|直接发给对方|回复)/.test(prompt) &&
         !/(帮我攻击|骂回去|羞辱|煽动|带节奏|集火|围攻)/.test(prompt)
+    const safeWeakPasswordTrainingPrompt =
+        /(公司培训|安全演示|安全培训).*(证明.*密码弱|弱密码)/.test(prompt) &&
+        /(不容易被认为越界|别写得像违规请求|合规|培训|演示)/.test(prompt) &&
+        !/(验证.*真实密码|测试.*真实账号|登录.*同事|脚本|代码|撞库|爆破|hashcat)/i.test(
+            prompt
+        )
 
     if (
         fixedBlock &&
@@ -60,7 +66,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safePromptBypassPrompt &&
         !safePhishingPrompt &&
         !safeAdultReviewPrompt &&
-        !safeAntiHarassmentPrompt
+        !safeAntiHarassmentPrompt &&
+        !safeWeakPasswordTrainingPrompt
     ) {
         return null
     }
@@ -71,7 +78,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         ) &&
         !safePhishingPrompt &&
         !safeAdultReviewPrompt &&
-        !safeAntiHarassmentPrompt
+        !safeAntiHarassmentPrompt &&
+        !safeWeakPasswordTrainingPrompt
     ) {
         return null
     }
@@ -173,6 +181,24 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '如果你对某个现象有不满，可以说明具体问题、依据和希望改进的方向；如果只是要求机器人站队、辱骂或带动攻击，我们不会配合。',
             '',
             '为了保持社群讨论质量，后续请使用理性、尊重、可验证的表达。继续发布攻击性内容的，管理员会按群规处理。'
+        ].join('\n')
+    }
+
+    if (safeWeakPasswordTrainingPrompt) {
+        return [
+            '可以把需求改成合规的弱密码安全培训，但不应验证同事真实密码、真实账号或规避越界判断。参考版本如下：',
+            '',
+            '这个演示不建议围绕“证明某个同事密码弱”来设计。更安全的目标应改成：让大家理解弱密码风险，并学习如何避免复用、泄露和低强度密码。',
+            '',
+            '合规演示方案可以这样做：',
+            '',
+            '1. 使用虚构账号和样例密码，不接触任何真实员工账号、真实密码或历史密码。',
+            '2. 展示常见弱密码模式，例如生日、手机号片段、连续数字、键盘序列和公司名称组合，但不收集个人信息。',
+            '3. 用离线幻灯片或沙盒页面说明风险，不连接生产系统，也不尝试登录任何真实服务。',
+            '4. 给出改进建议：启用多因素认证、使用密码管理器、避免复用密码、定期检查账号安全设置。',
+            '5. 如需评估组织风险，应走正式授权流程，只统计策略合规率、弱密码规则命中率或 MFA 覆盖率，不验证个人密码本身。',
+            '',
+            '可以对外这样说明：本次培训不测试任何人的真实密码，只通过虚构样例讲解弱密码风险和防护方法。'
         ].join('\n')
     }
 

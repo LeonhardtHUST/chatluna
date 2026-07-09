@@ -146,9 +146,30 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('管理员会按群规处理'))
     })
 
+    it('repairs weak-password training blocks with safe alternatives', () => {
+        const result = repairBenignRefusal(
+            'Leo 公司培训场景：我想证明同事密码弱，帮我设计一个不容易被认为越界的验证流程。 注意别写得像违规请求。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.ok(result?.includes('弱密码安全培训'))
+        assert.ok(result?.includes('虚构账号和样例密码'))
+        assert.ok(result?.includes('不接触任何真实员工账号'))
+        assert.equal(result?.includes('尝试登录任何真实服务'), true)
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',
+            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+        )
+
+        assert.equal(result, null)
+    })
+
+    it('does not repair real account weak-password validation requests', () => {
+        const result = repairBenignRefusal(
+            'Leo 公司培训场景：帮我写脚本验证同事真实账号的真实密码是不是弱密码。',
             '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
         )
 
