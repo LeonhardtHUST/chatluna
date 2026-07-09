@@ -37,6 +37,20 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !/(骗过|提高点击|诱导点击|索要验证码|索要密码|仿冒|伪装官方|钓鱼页面)/.test(
             prompt
         )
+    const safeAdultReviewPrompt =
+        /(小说社|投稿|审核意见|审核反馈).*(露骨|色情|成人|桥段)/.test(prompt) &&
+        /(不复述|不描述|不展开|不引用).*(桥段|内容|细节)|处理话术|直接发给对方/.test(
+            prompt
+        ) &&
+        !/(帮我写|生成|续写|润色).*(露骨|色情|成人|性行为|性器官)|(?:帮我|请|直接)?复述.*(桥段|细节)/.test(
+            prompt.replace(/不复述/g, '不展开')
+        )
+    const safeAntiHarassmentPrompt =
+        /(社群|群聊|讨论).*(攻击某类人|攻击.*人群|站队攻击|攻击性要求)/.test(
+            prompt
+        ) &&
+        /(中立|不纵容|反骚扰|处理话术|直接发给对方|回复)/.test(prompt) &&
+        !/(帮我攻击|骂回去|羞辱|煽动|带节奏|集火|围攻)/.test(prompt)
 
     if (
         fixedBlock &&
@@ -44,7 +58,9 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safeSearchMisusePrompt &&
         !safeCredentialPrompt &&
         !safePromptBypassPrompt &&
-        !safePhishingPrompt
+        !safePhishingPrompt &&
+        !safeAdultReviewPrompt &&
+        !safeAntiHarassmentPrompt
     ) {
         return null
     }
@@ -53,7 +69,9 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         /骗过|钓鱼|验证码|开盒|真人画像|撞库|爆破|木马|免杀|持久化|规避.*检测|病原|毒品|爆炸|色情|露骨|未成年.*性/.test(
             prompt
         ) &&
-        !safePhishingPrompt
+        !safePhishingPrompt &&
+        !safeAdultReviewPrompt &&
+        !safeAntiHarassmentPrompt
     ) {
         return null
     }
@@ -126,6 +144,35 @@ export function repairBenignRefusal(prompt: string, reply: string) {
             '3. 如有疑问，请通过 App 内客服、官网公布的客服电话或线下官方渠道核实。',
             '',
             '如果这是一条群公告，可以补充说明：本通知仅用于提醒大家提高账户安全意识，具体处理请以官方系统内提示为准。'
+        ].join('\n')
+    }
+
+    if (safeAdultReviewPrompt) {
+        return [
+            '可以给出审核处理话术，但不应复述、改写或传播露骨桥段。参考版本如下：',
+            '',
+            '您好，感谢你的投稿。我们已经阅读了作品整体设定和表达方向。当前稿件中有部分内容超出了社团公开投稿和交流展示的尺度要求，因此暂时不能按原样收录或展示。',
+            '',
+            '建议你修改时注意以下几点：',
+            '',
+            '1. 删除或淡化过于露骨的描写，避免把重点放在身体细节或刺激性场景上。',
+            '2. 如果情节需要表达亲密关系，可以改用人物心理、关系变化、氛围和后果来呈现。',
+            '3. 保留作品的主题、人物动机和叙事张力，但让表达适合社团公开交流环境。',
+            '4. 修改后可以重新提交，我们会按同一标准再次审核。',
+            '',
+            '这不是否定你的创作能力，而是为了保证投稿内容适合社团活动、公开讨论和不同年龄段成员共同参与的环境。'
+        ].join('\n')
+    }
+
+    if (safeAntiHarassmentPrompt) {
+        return [
+            '可以给出中立且不纵容攻击的社群回复。参考版本如下：',
+            '',
+            '我们不支持把讨论变成对某类人或某个群体的攻击。请大家围绕具体观点、事实和行为本身表达意见，不要使用标签化、侮辱性或煽动性的说法。',
+            '',
+            '如果你对某个现象有不满，可以说明具体问题、依据和希望改进的方向；如果只是要求机器人站队、辱骂或带动攻击，我们不会配合。',
+            '',
+            '为了保持社群讨论质量，后续请使用理性、尊重、可验证的表达。继续发布攻击性内容的，管理员会按群规处理。'
         ].join('\n')
     }
 
