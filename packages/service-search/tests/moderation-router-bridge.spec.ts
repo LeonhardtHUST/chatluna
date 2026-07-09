@@ -172,12 +172,13 @@ describe('service-search moderation router parser', () => {
 
     it('normalizes final response references on separate lines', () => {
         const text = normalizeReferencesMarkdown(
-            'References[^1]: 标题（https://example.com/a） [^2]: Other(https://example.com/b)'
+            'References[^1]: 标题（https://example.com/a） [^2]: Other(https://example.com/b)注：来源2权威性较低。'
         )
 
         assert.include(text, '## References')
         assert.include(text, '\n[^1]: [标题](https://example.com/a)')
         assert.include(text, '\n[^2]: [Other](https://example.com/b)')
+        assert.include(text, '\n注：来源2权威性较低。')
     })
 
     it('extracts inline citation links into markdown references', () => {

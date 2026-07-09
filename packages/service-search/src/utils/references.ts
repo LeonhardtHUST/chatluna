@@ -108,9 +108,11 @@ export function normalizeReferencesMarkdown(text: string) {
         .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1## References\n')
         .replace(/(^|\n)References\s*$/gim, '$1## References')
         .replace(
-            /^\[\^(\d+)\]:\s*\[?([^\]\[(\n]+)\]?\s*\((https?:\/\/[^)\s]+)\)\s*$/gim,
-            (_match, id: string, title: string, url: string) =>
-                `[^${id}]: [${title.trim()}](${url.trim()})`
+            /^\[\^(\d+)\]:\s*\[?([^\]\[(\n]+)\]?\s*\((https?:\/\/[^)\s]+)\)(.*)$/gim,
+            (_match, id: string, title: string, url: string, tail: string) =>
+                `[^${id}]: [${title.trim()}](${url.trim()})${
+                    tail.trim().length > 0 ? `\n${tail.trim()}` : ''
+                }`
         )
 
     const existing = new Set(

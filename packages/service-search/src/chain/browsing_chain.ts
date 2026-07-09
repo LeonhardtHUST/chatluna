@@ -736,16 +736,10 @@ export class ChatLunaBrowsingChain
             )
         } */
 
-        const aiMessage =
-            (finalResponse?.message as AIMessage) ??
-            new AIMessage(finalResponse.text)
-
-        if (typeof aiMessage.content === 'string') {
-            aiMessage.content = normalizeReferencesMarkdown(aiMessage.content)
-        }
-
         return {
-            message: aiMessage
+            message: new AIMessage(
+                normalizeReferencesMarkdown(finalResponse.text)
+            )
         }
     }
 
