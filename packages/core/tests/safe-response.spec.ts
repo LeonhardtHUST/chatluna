@@ -10,7 +10,7 @@ describe('benign refusal repair', () => {
             'References[^2]: 低空起飞（https://example.com/a） [^3]: Other(https://example.com/b)注：来源较弱。'
         )
 
-        assert.ok(result.includes('## References'))
+        assert.ok(result.includes('References:'))
         assert.ok(result.includes('\n[^2]: [低空起飞](https://example.com/a)'))
         assert.ok(result.includes('\n[^3]: [Other](https://example.com/b)'))
         assert.ok(result.includes('\n注：来源较弱。'))

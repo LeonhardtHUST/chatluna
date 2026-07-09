@@ -394,8 +394,8 @@ export function repairReferences(reply: string) {
             }
         )
         .replace(/\s*(\[\^\d+\]:)/g, '\n$1')
-        .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1## References\n')
-        .replace(/(^|\n)References\s*$/gim, '$1## References')
+        .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1References:\n')
+        .replace(/(^|\n)References\s*$/gim, '$1References:')
         .replace(
             /^\[\^(\d+)\]:\s*\[?([^\]\[(\n]+)\]?\s*\((https?:\/\/[^)\s]+)\)(.*)$/gim,
             (_match, id: string, title: string, url: string, tail: string) =>
@@ -412,8 +412,8 @@ export function repairReferences(reply: string) {
     )
 
     if (missing.length > 0) {
-        if (!/^## References\s*$/gim.test(result)) {
-            result += '\n\n## References'
+        if (!/^References:\s*$/gim.test(result)) {
+            result += '\n\nReferences:'
         }
 
         result +=

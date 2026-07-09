@@ -81,7 +81,7 @@ export function formatCompressedContext(
         references.length > 0 ? references : fallbackReferences(fallbackResults)
 
     if (refs.length > 0) {
-        lines.push('', '## References', '')
+        lines.push('', 'References:', '')
         lines.push(...refs.map(formatReferenceLine))
     }
 
@@ -105,8 +105,8 @@ export function normalizeReferencesMarkdown(text: string) {
             }
         )
         .replace(/\s*(\[\^\d+\]:)/g, '\n$1')
-        .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1## References\n')
-        .replace(/(^|\n)References\s*$/gim, '$1## References')
+        .replace(/(^|\n)References(?=\[\^\d+\]:)/gi, '$1References:\n')
+        .replace(/(^|\n)References\s*$/gim, '$1References:')
         .replace(
             /^\[\^(\d+)\]:\s*\[?([^\]\[(\n]+)\]?\s*\((https?:\/\/[^)\s]+)\)(.*)$/gim,
             (_match, id: string, title: string, url: string, tail: string) =>
@@ -123,8 +123,8 @@ export function normalizeReferencesMarkdown(text: string) {
     )
 
     if (missing.length > 0) {
-        if (!/^## References\s*$/gim.test(result)) {
-            result += '\n\n## References'
+        if (!/^References:\s*$/gim.test(result)) {
+            result += '\n\nReferences:'
         }
 
         result +=

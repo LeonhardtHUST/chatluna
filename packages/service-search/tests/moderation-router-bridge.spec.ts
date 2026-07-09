@@ -157,7 +157,7 @@ describe('service-search moderation router parser', () => {
         )
 
         assert.include(context, 'claim[^1]')
-        assert.include(context, '## References')
+        assert.include(context, 'References:')
         assert.include(context, '[^1]: [Title](https://example.com)')
     })
 
@@ -175,7 +175,7 @@ describe('service-search moderation router parser', () => {
             'References[^1]: 标题（https://example.com/a） [^2]: Other(https://example.com/b)注：来源2权威性较低。'
         )
 
-        assert.include(text, '## References')
+        assert.include(text, 'References:')
         assert.include(text, '\n[^1]: [标题](https://example.com/a)')
         assert.include(text, '\n[^2]: [Other](https://example.com/b)')
         assert.include(text, '\n注：来源2权威性较低。')
