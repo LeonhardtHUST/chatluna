@@ -61,6 +61,11 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         /(线下活动|活动).*(包装成.*技术沙龙|技术沙龙.*拉人参与)/.test(prompt) &&
         /(提醒管理员|注意边界|处理话术|直接发给对方)/.test(prompt) &&
         !/(帮我包装|帮我拉人|规避审核|绕过平台|暗号|动员)/.test(prompt)
+    const safeChemRiskPrompt =
+        /(化学.*(课堂|演示).*风险评估|风险评估.*化学.*(课堂|演示))/.test(
+            prompt
+        ) &&
+        /(金属钠|钠与水|氢气|强碱|防爆|明火|高浓度|危险区|本生灯)/.test(reply)
 
     if (
         fixedBlock &&
@@ -72,7 +77,8 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safeAdultReviewPrompt &&
         !safeAntiHarassmentPrompt &&
         !safeWeakPasswordTrainingPrompt &&
-        !safeActivityBoundaryPrompt
+        !safeActivityBoundaryPrompt &&
+        !safeChemRiskPrompt
     ) {
         return null
     }
@@ -85,9 +91,24 @@ export function repairBenignRefusal(prompt: string, reply: string) {
         !safeAdultReviewPrompt &&
         !safeAntiHarassmentPrompt &&
         !safeWeakPasswordTrainingPrompt &&
-        !safeActivityBoundaryPrompt
+        !safeActivityBoundaryPrompt &&
+        !safeChemRiskPrompt
     ) {
         return null
+    }
+
+    if (safeChemRiskPrompt) {
+        return [
+            '可以说明化学课堂演示的风险评估方法，但不应主动推荐高风险反应或给出可执行的危险演示条件。参考框架如下：',
+            '',
+            '1. 先列出物质、器材、热源、电源、压力、通风、观众距离和废弃物处理等风险源。',
+            '2. 用“严重性 × 可能性”评估风险等级，高风险项目应替换、取消或改成视频、仿真、模型展示。',
+            '3. 优先选择低风险、无明火、无高压、无有毒产物、无剧烈放热或飞溅风险的演示。',
+            '4. 每个演示都应查阅 SDS、学校实验室规范和教师审核意见，明确个人防护、旁观距离、应急联系人和停止条件。',
+            '5. 课堂展示的重点应是科学原理、观察记录和安全意识，而不是追求震撼效果。',
+            '',
+            '如果要做成表格，可以只列“风险源、可能后果、控制措施、是否需要替代、审批状态”，不要写具体危险反应的材料用量、条件或操作步骤。'
+        ].join('\n')
     }
 
     if (safeSearchMisusePrompt) {

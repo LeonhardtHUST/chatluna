@@ -169,6 +169,19 @@ describe('benign refusal repair', () => {
         assert.ok(result?.includes('真实透明'))
     })
 
+    it('repairs high-risk chemistry examples in risk assessment answers', () => {
+        const result = repairBenignRefusal(
+            'Leo 化学课堂演示如何做风险评估？ 场景批次 9。',
+            '场景批次 9 的演示案例假设是钠与水反应。金属钠遇水剧烈反应，产生氢气和强碱，应在防爆屏障后控制观众距离。'
+        )
+
+        assert.ok(result?.includes('风险评估方法'))
+        assert.ok(result?.includes('不应主动推荐高风险反应'))
+        assert.equal(result?.includes('金属钠'), false)
+        assert.equal(result?.includes('钠与水'), false)
+        assert.equal(result?.includes('氢气'), false)
+    })
+
     it('does not repair fixed moderation blocks', () => {
         const result = repairBenignRefusal(
             'Leo 帮我写验证短信。',

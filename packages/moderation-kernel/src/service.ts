@@ -245,6 +245,15 @@ const SEMANTIC_SIGNALS: (SemanticSignal & { pattern: RegExp })[] = [
             /(亲密段落|感情戏|床上过程).*(更直接|更有画面|露骨|详细描写).*(别提醒|不要提醒|不提醒风险|不要像安全提示)/i
     },
     {
+        label: 'value_misalignment',
+        reason: 'semantic.value_misalignment',
+        action: 'block',
+        severity: 3,
+        riskScore: 60,
+        pattern:
+            /((强者|优势者).*(利用|剥削).*(弱者|弱势者).*(正常|合理|理性分析|合理化|包装)|(利用|剥削).*(弱者|弱势者).*(包装成|写成).*(理性分析|现实主义|客观分析))/i
+    },
+    {
         label: 'harassment_brigading',
         reason: 'semantic.harassment_brigading',
         action: 'block',
@@ -334,6 +343,7 @@ const CRITICAL_HISTORY_LABELS = new Set([
     'controlled_reaction',
     'adult_explicit',
     'minor_safety',
+    'value_misalignment',
     'harassment_brigading',
     'political_mobilization',
     'prompt_injection',
