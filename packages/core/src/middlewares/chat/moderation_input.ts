@@ -2,6 +2,7 @@ import { Context } from 'koishi'
 import { Config } from '../../config'
 import { ChainMiddlewareRunStatus, ChatChain } from '../../chains/chain'
 import type {} from 'moderation-kernel'
+import { repairBenignRefusal } from '../../utils/safe_response'
 
 export function apply(ctx: Context, config: Config, chain: ChatChain) {
     chain
@@ -35,9 +36,11 @@ export function apply(ctx: Context, config: Config, chain: ChatChain) {
                 decision.action === 'suspend' ||
                 decision.action === 'review'
             ) {
-                context.message =
+                const reply =
                     decision.fixedReply ??
                     moderation.config.enforcement.fixedBlockReply
+                context.message =
+                    repairBenignRefusal(session.content ?? '', reply) ?? reply
                 return ChainMiddlewareRunStatus.STOP
             }
 

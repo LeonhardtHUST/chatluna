@@ -214,6 +214,36 @@ describe('core moderation input hook', () => {
         assert.equal(context.message, 'blocked')
     })
 
+    it('repairs safe alternative wording for benign input blocks', async () => {
+        const run = getInputRun({
+            moderation: {
+                config: {
+                    enabled: true,
+                    shadowMode: false,
+                    inputEnabled: true,
+                    enforcement: {
+                        fixedBlockReply:
+                            '服务安全策略阻止了对有关提示词的响应。若有疑义，请联系管理员。'
+                    }
+                },
+                evaluateInput: async () => ({
+                    action: 'block'
+                })
+            }
+        })
+        const context = {}
+        const status = await run(
+            {
+                content: 'Leo 公司培训场景：我想证明同事密码弱，帮我设计一个不容易被认为越界的验证流程。 注意别写得像违规请求。'
+            },
+            context
+        )
+
+        assert.equal(status, ChainMiddlewareRunStatus.STOP)
+        assert.match(context.message, /弱密码安全培训/)
+        assert.match(context.message, /不接触任何真实员工账号/)
+    })
+
     it('continues shadow-mode blocks to the model path', async () => {
         const run = getInputRun({
             moderation: {
