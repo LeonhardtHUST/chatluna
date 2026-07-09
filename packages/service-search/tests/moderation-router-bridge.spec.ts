@@ -169,4 +169,26 @@ describe('service-search moderation router parser', () => {
         assert.include(text, '[^1]: [标题](https://example.com/a)')
         assert.include(text, '\n[^2]: [Other](https://example.com/b)')
     })
+
+    it('normalizes final response references on separate lines', () => {
+        const text = normalizeReferencesMarkdown(
+            'References[^1]: 标题（https://example.com/a） [^2]: Other(https://example.com/b)'
+        )
+
+        assert.include(text, '## References')
+        assert.include(text, '\n[^1]: [标题](https://example.com/a)')
+        assert.include(text, '\n[^2]: [Other](https://example.com/b)')
+    })
+
+    it('extracts inline citation links into markdown references', () => {
+        const text = normalizeReferencesMarkdown(
+            '研究院已成立^1 ([华中科技大学低空经济研究院揭牌成立](https://example.com/news))。'
+        )
+
+        assert.include(text, '研究院已成立[^1]。')
+        assert.include(
+            text,
+            '[^1]: [华中科技大学低空经济研究院揭牌成立](https://example.com/news)'
+        )
+    })
 })

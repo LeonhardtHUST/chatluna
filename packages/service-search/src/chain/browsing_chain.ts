@@ -47,7 +47,8 @@ import {
 } from 'moderation-kernel'
 import {
     formatCompressedContext,
-    formatSearchResultsForContext
+    formatSearchResultsForContext,
+    normalizeReferencesMarkdown
 } from '../utils/references'
 
 // github.com/langchain-ai/weblangchain/blob/main/nextjs/app/api/chat/stream_log/route.ts#L81
@@ -738,6 +739,10 @@ export class ChatLunaBrowsingChain
         const aiMessage =
             (finalResponse?.message as AIMessage) ??
             new AIMessage(finalResponse.text)
+
+        if (typeof aiMessage.content === 'string') {
+            aiMessage.content = normalizeReferencesMarkdown(aiMessage.content)
+        }
 
         return {
             message: aiMessage
