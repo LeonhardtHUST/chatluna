@@ -16,6 +16,7 @@ $inner:
                 - 平衡模式。在信息获取和信息质量之间取得平衡。
                 - 质量模式。注重高信息质量的获取。
       searchThreshold: 搜索内容的相似度阈值。
+      maxRouterSearchQueries: 搜索路由最多生成的搜索查询数量。较小的值可降低延迟，但可能减少召回。
       searchTriggerKeywords: 机械搜索触发关键词。每个关键词之间使用半角逗号分隔。
       enableFastNonBrowsingSkip: 启用简单非浏览请求快路径。命中后跳过搜索路由模型，直接交给主模型回答。
       simpleNonBrowsingPhrases: 简单非浏览短句。每个短句之间使用半角逗号分隔，完全匹配后跳过搜索路由模型。

@@ -248,6 +248,7 @@ export interface Config extends ChatLunaPlugin.Config {
     searchThreshold: number
     contextualCompression: boolean
     contextualCompressionPrompt: string
+    maxRouterSearchQueries: number
     enableFastNonBrowsingSkip: boolean
     simpleNonBrowsingPhrases: string
     fastSkipStableTaskKeywords: string
@@ -294,6 +295,11 @@ export const Config: Schema<Config> = Schema.intersect([
 
         searchThreshold: Schema.percent().step(0.01).default(0.25),
         contextualCompression: Schema.boolean().default(false),
+        maxRouterSearchQueries: Schema.number()
+            .min(1)
+            .max(3)
+            .step(1)
+            .default(2),
         searchTriggerKeywords: Schema.string()
             .role('textarea', { rows: [3, 8] })
             .default(DEFAULT_SEARCH_TRIGGER_KEYWORDS)
@@ -421,8 +427,8 @@ Decision order:
 3. If question_payload_json clearly asks to search, browse, generate, rewrite, summarize, translate, test, bypass, or optimize blocked content, return safety="block", risk_level="high", action="skip", content=[].
 4. If user_message explicitly says not to search, not to browse, not to go online, or to use only common knowledge/existing knowledge, return action="skip", content=[] even when search_triggered_json is true.
 5. If allowed and user_message contains URL(s) to browse, return action="url" with up to 3 http/https URLs only.
-6. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with 2 to 3 self-contained search queries generated from user_message.
-7. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with 2 to 3 self-contained search queries.
+6. If search_triggered_json is true and the request is safe, treat it as explicit search intent and return action="search" with up to {max_router_search_queries} self-contained search queries generated from user_message.
+7. If allowed and user_message asks for search, latest/current/recent info, source verification, official announcements, volatile facts, specific software versions, API changes, current docs, install/config migration for a named current tool/library/cloud service, product specs, prices, schedules, weather, finance, sports, or unclear external facts, return action="search" with up to {max_router_search_queries} self-contained search queries.
 8. Otherwise return action="skip", content=[] for greetings, chat control, writing, translation, stable concepts, math, classic algorithms, basic programming syntax, and personal opinions.
 
 Search query rules:

@@ -186,6 +186,7 @@ export function apply(ctx: Context, config: Config) {
                         thoughtMessage: ctx.chatluna.config.showThoughtMessage,
                         searchPrompt: config.searchPrompt,
                         newQuestionPrompt: config.newQuestionPrompt,
+                        maxRouterSearchQueries: config.maxRouterSearchQueries,
                         contextualCompressionPrompt:
                             config.contextualCompression
                                 ? config.contextualCompressionPrompt

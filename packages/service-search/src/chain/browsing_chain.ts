@@ -92,6 +92,7 @@ export interface ChatLunaBrowsingChainInput {
 
     searchPrompt: string
     newQuestionPrompt: string
+    maxRouterSearchQueries: number
     contextualCompressionPrompt?: string
     searchFailedPrompt: string
     replySafetyCheckFails?: string
@@ -137,6 +138,8 @@ export class ChatLunaBrowsingChain
     tools: ComputedRef<ChatLunaToolWrapper[]>
 
     newQuestionPrompt: string
+
+    maxRouterSearchQueries: number
 
     responsePrompt: PromptTemplate
 
@@ -204,6 +207,7 @@ export class ChatLunaBrowsingChain
         searchPrompt,
         preset,
         newQuestionPrompt,
+        maxRouterSearchQueries,
         variableService,
         browserManager,
         summaryModel,
@@ -246,6 +250,7 @@ export class ChatLunaBrowsingChain
         this.thoughtMessage = thoughtMessage
         this.searchFailedPrompt = searchFailedPrompt
         this.newQuestionPrompt = newQuestionPrompt
+        this.maxRouterSearchQueries = maxRouterSearchQueries
         this.replySafetyCheckFails = replySafetyCheckFails
         this.safetyBlockKeywordGroups = safetyBlockKeywordGroups
         this.safetyRecheckKeywordGroups = safetyRecheckKeywordGroups
@@ -290,6 +295,7 @@ export class ChatLunaBrowsingChain
             thoughtMessage,
             searchPrompt,
             newQuestionPrompt,
+            maxRouterSearchQueries,
             summaryType,
             searchFailedPrompt,
             replySafetyCheckFails,
@@ -371,6 +377,7 @@ export class ChatLunaBrowsingChain
             fastSkipStableTaskExcludeKeywords,
             searchPrompt,
             newQuestionPrompt,
+            maxRouterSearchQueries,
             chain,
             tools,
             summaryType,
@@ -706,6 +713,7 @@ export class ChatLunaBrowsingChain
                     ),
                     time: date,
                     question: question.payload,
+                    max_router_search_queries: this.maxRouterSearchQueries,
                     risk_level: precheck.risk_level,
                     search_triggered: JSON.stringify(
                         !forbidsSearch &&
@@ -734,6 +742,20 @@ export class ChatLunaBrowsingChain
         )['text'] as string
 
         const searchAction = parseSearchAction(newQuestion)
+
+        if (
+            searchAction.action === 'search' &&
+            Array.isArray(searchAction.content) &&
+            searchAction.content.length > this.maxRouterSearchQueries
+        ) {
+            logger?.debug(
+                `trim router search queries: ${searchAction.content.length} -> ${this.maxRouterSearchQueries}`
+            )
+            searchAction.content = searchAction.content.slice(
+                0,
+                this.maxRouterSearchQueries
+            )
+        }
 
         logger?.debug(`action: ${JSON.stringify(searchAction)}`)
 

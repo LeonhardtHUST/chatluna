@@ -82,6 +82,7 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(text, 'safetyBlockKeywordGroups')
         assert.notInclude(text, 'safetyRecheckKeywordGroups')
         assert.notInclude(text, 'promptAttackWarning')
+        assert.include(text, 'maxRouterSearchQueries')
         assert.include(text, 'searchTriggerKeywords')
         assert.include(text, 'enableFastNonBrowsingSkip')
         assert.include(text, 'simpleNonBrowsingPhrases')
@@ -168,6 +169,22 @@ describe('service-search moderation router parser', () => {
         assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, '最新')
         assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, 'api')
         assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, 'https://')
+    })
+
+    it('limits router search queries in code and prompt', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+        const text = JSON.stringify(
+            (Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.include(text, 'maxRouterSearchQueries')
+        assert.include(text, 'max_router_search_queries')
+        assert.include(source, 'this.maxRouterSearchQueries')
+        assert.include(source, 'trim router search queries')
+        assert.include(source, 'searchAction.content.slice')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {
