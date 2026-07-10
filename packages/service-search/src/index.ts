@@ -49,6 +49,8 @@ export function apply(ctx: Context, config: Config) {
     }
 
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
+    config.providerTimeoutMs ??= 8000
+    config.searchEarlyReturnResults ??= 3
     config.enableFastNonBrowsingSkip ??= true
     config.simpleNonBrowsingPhrases ??= DEFAULT_SIMPLE_NON_BROWSING_PHRASES
     config.fastSkipStableTaskKeywords ??= DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS

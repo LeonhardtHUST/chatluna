@@ -82,6 +82,8 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(text, 'safetyBlockKeywordGroups')
         assert.notInclude(text, 'safetyRecheckKeywordGroups')
         assert.notInclude(text, 'promptAttackWarning')
+        assert.include(text, 'providerTimeoutMs')
+        assert.include(text, 'searchEarlyReturnResults')
         assert.include(text, 'maxRouterSearchQueries')
         assert.include(text, 'searchTriggerKeywords')
         assert.include(text, 'enableFastNonBrowsingSkip')
@@ -185,6 +187,19 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'this.maxRouterSearchQueries')
         assert.include(source, 'trim router search queries')
         assert.include(source, 'searchAction.content.slice')
+    })
+
+    it('adds provider timeout and early-return controls', () => {
+        const source = readFileSync(require.resolve('../src/provide'), 'utf8')
+        const text = JSON.stringify(
+            (Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.include(text, 'providerTimeoutMs')
+        assert.include(text, 'searchEarlyReturnResults')
+        assert.include(source, 'searchWithTimeout')
+        assert.include(source, 'Search provider timed out')
+        assert.include(source, 'this.config.searchEarlyReturnResults')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {

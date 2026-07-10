@@ -213,6 +213,8 @@ export interface Config extends ChatLunaPlugin.Config {
     summaryType: SummaryType
     summaryModel: string
     multiSourceMode: 'average' | 'total'
+    providerTimeoutMs: number
+    searchEarlyReturnResults: number
     searchFailedPrompt: string
     replySafetyCheckFails?: string
     safetyBlockKeywordGroups?: SafetyBlockKeywordGroup[]
@@ -291,6 +293,8 @@ export const Config: Schema<Config> = Schema.intersect([
             Schema.const('average'),
             Schema.const('total')
         ]).default('average') as Schema<Config['multiSourceMode']>,
+        providerTimeoutMs: Schema.number().min(1000).default(8000),
+        searchEarlyReturnResults: Schema.number().min(1).step(1).default(3),
         summaryModel: Schema.dynamic('model').default('empty'),
 
         searchThreshold: Schema.percent().step(0.01).default(0.25),

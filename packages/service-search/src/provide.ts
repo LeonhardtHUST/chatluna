@@ -1,7 +1,7 @@
-import { Context, Schema } from 'koishi'
+import { Context, Logger, Schema } from 'koishi'
 import { ChatLunaPlugin } from 'koishi-plugin-chatluna/services/chat'
 import { SearchResult } from './types'
-import { Config, logger } from '.'
+import type { Config } from './config'
 import { Document } from '@langchain/core/documents'
 import { MemoryVectorStore } from 'koishi-plugin-chatluna/llm-core/vectorstores'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
@@ -25,11 +25,14 @@ export class SearchManager {
     private providers: Map<string, SearchProvider> = new Map()
     private schemas: Schema[] = []
     private _embeddings: ComputedRef<ChatLunaBaseEmbeddings>
+    private logger: Logger
 
     constructor(
         private ctx: Context,
         public config: Config
-    ) {}
+    ) {
+        this.logger = ctx.logger('chatluna-search-service')
+    }
 
     addProvider(provider: SearchProvider) {
         this.providers.set(provider.name, provider)
@@ -70,9 +73,12 @@ export class SearchManager {
         if (providers.length === 1) {
             // 一个源就不用分了，直接返回
             try {
-                return await providers[0].search(query, limit)
+                return await searchWithTimeout(
+                    providers[0].search(query, limit),
+                    this.config.providerTimeoutMs
+                )
             } catch (error) {
-                logger.error(
+                this.logger.error(
                     `Error searching with provider ${providers[0].name}:`,
                     error
                 )
@@ -81,31 +87,51 @@ export class SearchManager {
         }
 
         const searchResults: SearchResult[] = []
+        const results = await new Promise<SearchResult[]>((resolve) => {
+            let done = 0
+            let resolved = false
 
-        const signalLimit =
-            this.config.multiSourceMode === 'average'
-                ? Math.max(1, Math.round(limit / providers.length))
-                : limit
+            const signalLimit =
+                this.config.multiSourceMode === 'average'
+                    ? Math.max(1, Math.round(limit / providers.length))
+                    : limit
 
-        const searchPromises = providers.map(async (provider) => {
-            try {
-                const results = await provider.search(query, signalLimit)
-                searchResults.push(...results)
-            } catch (error) {
-                logger.error(
-                    `Error searching with provider ${provider.name}:`,
-                    error
-                )
+            const finish = () => {
+                done += 1
+                if (
+                    !resolved &&
+                    (done >= providers.length ||
+                        searchResults.length >=
+                            this.config.searchEarlyReturnResults)
+                ) {
+                    resolved = true
+                    resolve([...searchResults])
+                }
             }
+
+            providers.forEach((provider) => {
+                searchWithTimeout(
+                    provider.search(query, signalLimit),
+                    this.config.providerTimeoutMs
+                )
+                    .then((results) => {
+                        searchResults.push(...results)
+                    })
+                    .catch((error) => {
+                        this.logger.error(
+                            `Error searching with provider ${provider.name}:`,
+                            error
+                        )
+                    })
+                    .finally(finish)
+            })
         })
 
-        await Promise.all(searchPromises)
-
-        if (searchResults.length > limit) {
-            return this._reRankResults(query, searchResults, limit)
+        if (results.length > limit) {
+            return this._reRankResults(query, results, limit)
         }
 
-        return searchResults
+        return results
     }
 
     private async _getEmbeddings() {
@@ -120,7 +146,7 @@ export class SearchManager {
                 model
             )
         } catch (e) {
-            logger.warn(
+            this.logger.warn(
                 `Get embeddings failed: ${e}. Try check your defaultEmbeddings`
             )
             return null
@@ -139,7 +165,7 @@ export class SearchManager {
         const embeddings = await this._getEmbeddings()
 
         if (!embeddings || embeddings.value instanceof EmptyEmbeddings) {
-            logger.warn('Embeddings is null. Return original results.')
+            this.logger.warn('Embeddings is null. Return original results.')
             return results
         }
 
@@ -165,4 +191,31 @@ export class SearchManager {
 
         return searchResults.map((r) => r.metadata) as SearchResult[]
     }
+}
+
+function searchWithTimeout(
+    promise: Promise<SearchResult[]>,
+    timeoutMs: number
+) {
+    if (timeoutMs < 1) return promise
+
+    return new Promise<SearchResult[]>((resolve, reject) => {
+        const timer = setTimeout(
+            () =>
+                reject(
+                    new Error(`Search provider timed out after ${timeoutMs}ms`)
+                ),
+            timeoutMs
+        )
+
+        promise
+            .then((results) => {
+                clearTimeout(timer)
+                resolve(results)
+            })
+            .catch((error) => {
+                clearTimeout(timer)
+                reject(error)
+            })
+    })
 }

@@ -33,6 +33,8 @@ $inner:
           $inner:
               - 平均模式。将多个来源的搜索结果各取平均个。
               - 总和模式。将多个来源的搜索结果进行总和后取前 topK 个。
+      providerTimeoutMs: 单个搜索源的超时时间（毫秒）。超时后返回已有结果。
+      searchEarlyReturnResults: 多搜索源模式下达到该结果数后可提前返回。
 
 
     - $desc: 浏览器设置

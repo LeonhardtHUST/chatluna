@@ -32,6 +32,8 @@ $inner:
           $inner:
               - 'Average mode. Takes an average number of search results from each source.'
               - 'Sum mode. Combines search results from multiple sources and takes the top K results.'
+      providerTimeoutMs: 'Timeout per search provider in milliseconds. Timed-out providers are skipped and existing results are returned.'
+      searchEarlyReturnResults: 'Return early in multi-provider mode after at least this many results are available.'
 
     - $desc: 'Browser Settings'
       enableBrowser: 'Enable browser features. Required for browser tools, URL browsing, Bing (Web), and Google (Web).'
