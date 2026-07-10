@@ -6,7 +6,8 @@ $inner:
       topK: 'Number of reference results (2-50)'
       enhancedSummary: 'Enable enhanced summary'
       fastEnhancedSummary: 'Enable fast enhanced summary. This will not call the model and directly return the search results. (Requires a larger context model)'
-      contextualCompression: 'Enable contextual compression. Will compress the search results based on the selected summary model.'
+      contextualCompression: 'Search-result contextual compression mode. off disables it, auto compresses only long contexts, always compresses every non-empty context.'
+      contextualCompressionMinChars: 'Minimum context length for triggering contextual compression in auto mode.'
       summaryModel: 'Model used for generating summaries. Opting for a smaller and faster model can yield quicker responses.'
       summaryType:
           $desc: 'Summary mode. Different summary modes can improve the quality of information.'

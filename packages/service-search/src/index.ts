@@ -49,6 +49,8 @@ export function apply(ctx: Context, config: Config) {
     }
 
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
+    config.contextualCompression ??= false
+    config.contextualCompressionMinChars ??= 6000
     config.providerTimeoutMs ??= 8000
     config.searchEarlyReturnResults ??= 3
     config.enableFastNonBrowsingSkip ??= true
@@ -158,6 +160,13 @@ export function apply(ctx: Context, config: Config) {
                     )
 
                     const model = params.model
+                    const compressionMode: 'off' | 'auto' | 'always' =
+                        config.contextualCompression === true
+                            ? 'always'
+                            : config.contextualCompression === 'auto' ||
+                                config.contextualCompression === 'always'
+                              ? config.contextualCompression
+                              : 'off'
                     const safety = serviceSearchSafetyConfig(
                         ctx.moderation?.config,
                         config
@@ -189,8 +198,11 @@ export function apply(ctx: Context, config: Config) {
                         searchPrompt: config.searchPrompt,
                         newQuestionPrompt: config.newQuestionPrompt,
                         maxRouterSearchQueries: config.maxRouterSearchQueries,
+                        contextualCompressionMode: compressionMode,
+                        contextualCompressionMinChars:
+                            config.contextualCompressionMinChars,
                         contextualCompressionPrompt:
-                            config.contextualCompression
+                            compressionMode !== 'off'
                                 ? config.contextualCompressionPrompt
                                 : undefined,
                         searchFailedPrompt: config.searchFailedPrompt,

@@ -84,6 +84,7 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(text, 'promptAttackWarning')
         assert.include(text, 'providerTimeoutMs')
         assert.include(text, 'searchEarlyReturnResults')
+        assert.include(text, 'contextualCompressionMinChars')
         assert.include(text, 'maxRouterSearchQueries')
         assert.include(text, 'searchTriggerKeywords')
         assert.include(text, 'enableFastNonBrowsingSkip')
@@ -200,6 +201,24 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'searchWithTimeout')
         assert.include(source, 'Search provider timed out')
         assert.include(source, 'this.config.searchEarlyReturnResults')
+    })
+
+    it('uses adaptive contextual compression mode', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+        const index = readFileSync(require.resolve('../src/index'), 'utf8')
+        const text = JSON.stringify(
+            (Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.include(text, 'contextualCompressionMinChars')
+        assert.include(index, "config.contextualCompression === true")
+        assert.include(index, "compressionMode !== 'off'")
+        assert.include(source, "this.contextualCompressionMode === 'always'")
+        assert.include(source, "this.contextualCompressionMode === 'auto'")
+        assert.include(source, 'context.length >= this.contextualCompressionMinChars')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {

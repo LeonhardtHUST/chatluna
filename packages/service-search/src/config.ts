@@ -248,7 +248,8 @@ export interface Config extends ChatLunaPlugin.Config {
     searchPrompt: string
     newQuestionPrompt: string
     searchThreshold: number
-    contextualCompression: boolean
+    contextualCompression: boolean | 'off' | 'auto' | 'always'
+    contextualCompressionMinChars: number
     contextualCompressionPrompt: string
     maxRouterSearchQueries: number
     enableFastNonBrowsingSkip: boolean
@@ -298,7 +299,12 @@ export const Config: Schema<Config> = Schema.intersect([
         summaryModel: Schema.dynamic('model').default('empty'),
 
         searchThreshold: Schema.percent().step(0.01).default(0.25),
-        contextualCompression: Schema.boolean().default(false),
+        contextualCompression: Schema.union([
+            Schema.const('off'),
+            Schema.const('auto'),
+            Schema.const('always')
+        ]).default('off') as Schema<Config['contextualCompression']>,
+        contextualCompressionMinChars: Schema.number().min(1000).default(6000),
         maxRouterSearchQueries: Schema.number()
             .min(1)
             .max(3)

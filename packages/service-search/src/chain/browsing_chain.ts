@@ -93,6 +93,8 @@ export interface ChatLunaBrowsingChainInput {
     searchPrompt: string
     newQuestionPrompt: string
     maxRouterSearchQueries: number
+    contextualCompressionMode: 'off' | 'auto' | 'always'
+    contextualCompressionMinChars: number
     contextualCompressionPrompt?: string
     searchFailedPrompt: string
     replySafetyCheckFails?: string
@@ -140,6 +142,10 @@ export class ChatLunaBrowsingChain
     newQuestionPrompt: string
 
     maxRouterSearchQueries: number
+
+    contextualCompressionMode: 'off' | 'auto' | 'always'
+
+    contextualCompressionMinChars: number
 
     responsePrompt: PromptTemplate
 
@@ -208,6 +214,8 @@ export class ChatLunaBrowsingChain
         preset,
         newQuestionPrompt,
         maxRouterSearchQueries,
+        contextualCompressionMode,
+        contextualCompressionMinChars,
         variableService,
         browserManager,
         summaryModel,
@@ -251,6 +259,8 @@ export class ChatLunaBrowsingChain
         this.searchFailedPrompt = searchFailedPrompt
         this.newQuestionPrompt = newQuestionPrompt
         this.maxRouterSearchQueries = maxRouterSearchQueries
+        this.contextualCompressionMode = contextualCompressionMode
+        this.contextualCompressionMinChars = contextualCompressionMinChars
         this.replySafetyCheckFails = replySafetyCheckFails
         this.safetyBlockKeywordGroups = safetyBlockKeywordGroups
         this.safetyRecheckKeywordGroups = safetyRecheckKeywordGroups
@@ -296,6 +306,8 @@ export class ChatLunaBrowsingChain
             searchPrompt,
             newQuestionPrompt,
             maxRouterSearchQueries,
+            contextualCompressionMode,
+            contextualCompressionMinChars,
             summaryType,
             searchFailedPrompt,
             replySafetyCheckFails,
@@ -378,6 +390,8 @@ export class ChatLunaBrowsingChain
             searchPrompt,
             newQuestionPrompt,
             maxRouterSearchQueries,
+            contextualCompressionMode,
+            contextualCompressionMinChars,
             chain,
             tools,
             summaryType,
@@ -1113,7 +1127,12 @@ export class ChatLunaBrowsingChain
             return ''
         }
 
-        if (this.contextualCompressionChain) {
+        if (
+            this.contextualCompressionChain &&
+            (this.contextualCompressionMode === 'always' ||
+                (this.contextualCompressionMode === 'auto' &&
+                    context.length >= this.contextualCompressionMinChars))
+        ) {
             try {
                 const compressed = (
                     await callChatLunaChain(
