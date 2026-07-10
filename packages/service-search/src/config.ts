@@ -300,10 +300,11 @@ export const Config: Schema<Config> = Schema.intersect([
 
         searchThreshold: Schema.percent().step(0.01).default(0.25),
         contextualCompression: Schema.union([
+            Schema.boolean(),
             Schema.const('off'),
             Schema.const('auto'),
             Schema.const('always')
-        ]).default('off') as Schema<Config['contextualCompression']>,
+        ]).default(false) as Schema<Config['contextualCompression']>,
         contextualCompressionMinChars: Schema.number().min(1000).default(6000),
         maxRouterSearchQueries: Schema.number()
             .min(1)

@@ -214,6 +214,7 @@ describe('service-search moderation router parser', () => {
         )
 
         assert.include(text, 'contextualCompressionMinChars')
+        assert.include(text, 'boolean')
         assert.include(index, "config.contextualCompression === true")
         assert.include(index, "compressionMode !== 'off'")
         assert.include(source, "this.contextualCompressionMode === 'always'")
@@ -233,6 +234,7 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'searchEarlyReturnResults')
         assert.include(source, 'default(3)')
         assert.include(source, 'contextualCompressionMinChars')
+        assert.include(source, 'Schema.boolean()')
         assert.include(source, 'default(6000)')
     })
 
