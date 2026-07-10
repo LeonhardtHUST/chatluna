@@ -221,6 +221,21 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'context.length >= this.contextualCompressionMinChars')
     })
 
+    it('keeps latency optimization defaults visible in config source', () => {
+        const source = readFileSync(require.resolve('../src/config'), 'utf8')
+
+        assert.include(source, 'DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS')
+        assert.include(source, 'DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS')
+        assert.include(source, 'maxRouterSearchQueries')
+        assert.include(source, 'default(2)')
+        assert.include(source, 'providerTimeoutMs')
+        assert.include(source, 'default(8000)')
+        assert.include(source, 'searchEarlyReturnResults')
+        assert.include(source, 'default(3)')
+        assert.include(source, 'contextualCompressionMinChars')
+        assert.include(source, 'default(6000)')
+    })
+
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {
         const source = readFileSync(
             require.resolve('../src/chain/browsing_chain'),
