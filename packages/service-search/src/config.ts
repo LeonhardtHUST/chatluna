@@ -46,6 +46,97 @@ export const DEFAULT_SEARCH_TRIGGER_KEYWORDS = [
     '刚更新'
 ].join(',')
 
+export const DEFAULT_SIMPLE_NON_BROWSING_PHRASES = [
+    '你好',
+    '您好',
+    '嗨',
+    'hi',
+    'hello',
+    '在吗',
+    '早上好',
+    '中午好',
+    '下午好',
+    '晚上好',
+    '晚安',
+    '谢谢',
+    '感谢',
+    '再见',
+    '拜拜',
+    '你是谁',
+    '你喜欢我吗',
+    '我喜欢你'
+].join(',')
+
+export const DEFAULT_SAFE_SEARCH_SYNTAX_TERMS = [
+    '搜索语法',
+    '搜索引擎语法',
+    '搜索引擎高级语法',
+    '高级搜索',
+    '检索语法',
+    '检索指令',
+    '搜索指令'
+].join(',')
+
+export const DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS = [
+    '风险',
+    '替代流程',
+    '替代方案',
+    '合规',
+    '培训',
+    '话术',
+    '提醒',
+    '不要',
+    '不应',
+    '不能',
+    '禁止',
+    '说明',
+    '边界',
+    '用途'
+].join(',')
+
+export const DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS = [
+    '帮我找',
+    '帮我搜',
+    '给我语法',
+    '列出语法',
+    '可用链接',
+    '下载',
+    '获取',
+    'site:',
+    'inurl:',
+    'intitle:'
+].join(',')
+
+export const DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS = [
+    '最新',
+    '最近',
+    '当前',
+    '现在',
+    '今天',
+    '今年',
+    '政策',
+    '法规',
+    '规则',
+    '官方',
+    '官网',
+    '公告',
+    '案例',
+    '事件',
+    '新闻',
+    '变化',
+    '更新',
+    '来源',
+    '出处',
+    '原文',
+    '核实',
+    '验证',
+    '查一下',
+    '搜索一下',
+    '帮我搜索',
+    '联网',
+    '上网'
+].join(',')
+
 export interface SafetyBlockKeywordGroup {
     name: string
     keywords: string
@@ -92,6 +183,14 @@ export interface Config extends ChatLunaPlugin.Config {
     searchThreshold: number
     contextualCompression: boolean
     contextualCompressionPrompt: string
+    enableFastNonBrowsingSkip: boolean
+    simpleNonBrowsingPhrases: string
+    fastSkipNumericOnly: boolean
+    enableSafeSearchSyntaxSkip: boolean
+    safeSearchSyntaxTerms: string
+    safeSearchSyntaxContextKeywords: string
+    safeSearchSyntaxExcludeKeywords: string
+    safeSearchSyntaxSearchIntentKeywords: string
 }
 
 export const Config: Schema<Config> = Schema.intersect([
@@ -133,7 +232,25 @@ export const Config: Schema<Config> = Schema.intersect([
             .default(DEFAULT_SEARCH_TRIGGER_KEYWORDS)
             .description(
                 'Mechanical search trigger keywords. Separate keywords with half-width commas.'
-            )
+            ),
+        enableFastNonBrowsingSkip: Schema.boolean().default(true),
+        simpleNonBrowsingPhrases: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SIMPLE_NON_BROWSING_PHRASES),
+        fastSkipNumericOnly: Schema.boolean().default(true),
+        enableSafeSearchSyntaxSkip: Schema.boolean().default(true),
+        safeSearchSyntaxTerms: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_SEARCH_SYNTAX_TERMS),
+        safeSearchSyntaxContextKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS),
+        safeSearchSyntaxExcludeKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS),
+        safeSearchSyntaxSearchIntentKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS)
     }),
 
     Schema.object({
