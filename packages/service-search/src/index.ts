@@ -9,6 +9,8 @@ import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
     apply as configApply,
+    DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS,
+    DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS,
@@ -49,6 +51,9 @@ export function apply(ctx: Context, config: Config) {
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
     config.enableFastNonBrowsingSkip ??= true
     config.simpleNonBrowsingPhrases ??= DEFAULT_SIMPLE_NON_BROWSING_PHRASES
+    config.fastSkipStableTaskKeywords ??= DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS
+    config.fastSkipStableTaskExcludeKeywords ??=
+        DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS
     config.fastSkipNumericOnly ??= true
     config.enableSafeSearchSyntaxSkip ??= true
     config.safeSearchSyntaxTerms ??= DEFAULT_SAFE_SEARCH_SYNTAX_TERMS
@@ -214,6 +219,16 @@ export function apply(ctx: Context, config: Config) {
                             config.enableFastNonBrowsingSkip,
                         simpleNonBrowsingPhrases:
                             config.simpleNonBrowsingPhrases
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        fastSkipStableTaskKeywords:
+                            config.fastSkipStableTaskKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        fastSkipStableTaskExcludeKeywords:
+                            config.fastSkipStableTaskExcludeKeywords
                                 .split(/[,，\r\n]+/)
                                 .map((keyword) => keyword.trim())
                                 .filter((keyword) => keyword.length > 0),

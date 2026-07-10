@@ -67,6 +67,71 @@ export const DEFAULT_SIMPLE_NON_BROWSING_PHRASES = [
     '我喜欢你'
 ].join(',')
 
+export const DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS = [
+    '翻译',
+    '润色',
+    '改写',
+    '续写',
+    '写一段',
+    '写一篇',
+    '生成一段',
+    '生成一篇',
+    '解释',
+    '说明',
+    '总结',
+    '概括',
+    '计算',
+    '证明',
+    '推导',
+    '数学',
+    '公式',
+    '二叉树',
+    '排序算法',
+    '动态规划',
+    '正则表达式',
+    '基础语法',
+    '代码解释',
+    '报错解释'
+].join(',')
+
+export const DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS = [
+    '搜索',
+    '查询',
+    '查一下',
+    '上网',
+    '联网',
+    '浏览',
+    '官网',
+    '官方',
+    '公告',
+    '通知',
+    '新闻',
+    '动态',
+    '进展',
+    '近况',
+    '最新',
+    '最近',
+    '当前',
+    '现在',
+    '今天',
+    '今年',
+    '版本',
+    'api',
+    'sdk',
+    '文档',
+    '安装',
+    '配置',
+    '迁移',
+    '发布',
+    '价格',
+    '引用',
+    '来源',
+    '出处',
+    '原文',
+    'http://',
+    'https://'
+].join(',')
+
 export const DEFAULT_SAFE_SEARCH_SYNTAX_TERMS = [
     '搜索语法',
     '搜索引擎语法',
@@ -185,6 +250,8 @@ export interface Config extends ChatLunaPlugin.Config {
     contextualCompressionPrompt: string
     enableFastNonBrowsingSkip: boolean
     simpleNonBrowsingPhrases: string
+    fastSkipStableTaskKeywords: string
+    fastSkipStableTaskExcludeKeywords: string
     fastSkipNumericOnly: boolean
     enableSafeSearchSyntaxSkip: boolean
     safeSearchSyntaxTerms: string
@@ -237,6 +304,12 @@ export const Config: Schema<Config> = Schema.intersect([
         simpleNonBrowsingPhrases: Schema.string()
             .role('textarea', { rows: [2, 6] })
             .default(DEFAULT_SIMPLE_NON_BROWSING_PHRASES),
+        fastSkipStableTaskKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS),
+        fastSkipStableTaskExcludeKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS),
         fastSkipNumericOnly: Schema.boolean().default(true),
         enableSafeSearchSyntaxSkip: Schema.boolean().default(true),
         safeSearchSyntaxTerms: Schema.string()

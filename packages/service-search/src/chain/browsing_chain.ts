@@ -102,6 +102,8 @@ export interface ChatLunaBrowsingChainInput {
     searchTriggerKeywords: string[]
     enableFastNonBrowsingSkip: boolean
     simpleNonBrowsingPhrases: string[]
+    fastSkipStableTaskKeywords: string[]
+    fastSkipStableTaskExcludeKeywords: string[]
     fastSkipNumericOnly: boolean
     enableSafeSearchSyntaxSkip: boolean
     safeSearchSyntaxTerms: string[]
@@ -170,6 +172,10 @@ export class ChatLunaBrowsingChain
 
     simpleNonBrowsingPhrases: string[]
 
+    fastSkipStableTaskKeywords: string[]
+
+    fastSkipStableTaskExcludeKeywords: string[]
+
     fastSkipNumericOnly: boolean
 
     enableSafeSearchSyntaxSkip: boolean
@@ -211,6 +217,8 @@ export class ChatLunaBrowsingChain
         searchTriggerKeywords,
         enableFastNonBrowsingSkip,
         simpleNonBrowsingPhrases,
+        fastSkipStableTaskKeywords,
+        fastSkipStableTaskExcludeKeywords,
         fastSkipNumericOnly,
         enableSafeSearchSyntaxSkip,
         safeSearchSyntaxTerms,
@@ -246,6 +254,9 @@ export class ChatLunaBrowsingChain
         this.searchTriggerKeywords = searchTriggerKeywords
         this.enableFastNonBrowsingSkip = enableFastNonBrowsingSkip
         this.simpleNonBrowsingPhrases = simpleNonBrowsingPhrases
+        this.fastSkipStableTaskKeywords = fastSkipStableTaskKeywords
+        this.fastSkipStableTaskExcludeKeywords =
+            fastSkipStableTaskExcludeKeywords
         this.fastSkipNumericOnly = fastSkipNumericOnly
         this.enableSafeSearchSyntaxSkip = enableSafeSearchSyntaxSkip
         this.safeSearchSyntaxTerms = safeSearchSyntaxTerms
@@ -289,6 +300,8 @@ export class ChatLunaBrowsingChain
             searchTriggerKeywords,
             enableFastNonBrowsingSkip,
             simpleNonBrowsingPhrases,
+            fastSkipStableTaskKeywords,
+            fastSkipStableTaskExcludeKeywords,
             fastSkipNumericOnly,
             enableSafeSearchSyntaxSkip,
             safeSearchSyntaxTerms,
@@ -354,6 +367,8 @@ export class ChatLunaBrowsingChain
             safeSearchSyntaxContextKeywords,
             safeSearchSyntaxExcludeKeywords,
             safeSearchSyntaxSearchIntentKeywords,
+            fastSkipStableTaskKeywords,
+            fastSkipStableTaskExcludeKeywords,
             searchPrompt,
             newQuestionPrompt,
             chain,
@@ -609,6 +624,32 @@ export class ChatLunaBrowsingChain
         ) {
             const action: SearchAction = {
                 thought: 'simple non-browsing request',
+                safety: 'allow',
+                action: 'skip',
+                content: []
+            }
+            logger?.debug(`action: ${JSON.stringify(action)}`)
+
+            return await this._answer(
+                requests,
+                stream,
+                signal,
+                session,
+                maxToken,
+                events
+            )
+        }
+
+        if (
+            stableNonBrowsingTask(
+                clean,
+                this.enableFastNonBrowsingSkip,
+                this.fastSkipStableTaskKeywords,
+                this.fastSkipStableTaskExcludeKeywords
+            )
+        ) {
+            const action: SearchAction = {
+                thought: 'stable non-browsing task',
                 safety: 'allow',
                 action: 'skip',
                 content: []
@@ -1228,6 +1269,20 @@ function simpleNonBrowsingRequest(
         enabled &&
         (phrases.some((keyword) => text === keyword.toLocaleLowerCase()) ||
             (numericOnly && /^[0-9]+$/.test(text)))
+    )
+}
+
+function stableNonBrowsingTask(
+    input: string,
+    enabled: boolean,
+    keywords: string[],
+    excludes: string[]
+) {
+    return (
+        enabled &&
+        hasKeyword(input, keywords) &&
+        !hasKeyword(input, excludes) &&
+        !/https?:\/\/\S+/i.test(input)
     )
 }
 

@@ -4,6 +4,8 @@ import { assert } from 'chai'
 import { readFileSync } from 'fs'
 import {
     Config,
+    DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS,
+    DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_TERMS,
     DEFAULT_SIMPLE_NON_BROWSING_PHRASES
 } from '../src/config'
@@ -83,6 +85,8 @@ describe('service-search moderation router parser', () => {
         assert.include(text, 'searchTriggerKeywords')
         assert.include(text, 'enableFastNonBrowsingSkip')
         assert.include(text, 'simpleNonBrowsingPhrases')
+        assert.include(text, 'fastSkipStableTaskKeywords')
+        assert.include(text, 'fastSkipStableTaskExcludeKeywords')
         assert.include(text, 'enableSafeSearchSyntaxSkip')
         assert.include(text, 'safeSearchSyntaxTerms')
         assert.include(text, 'safeSearchSyntaxSearchIntentKeywords')
@@ -148,6 +152,22 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'simple non-browsing request')
         assert.include(DEFAULT_SIMPLE_NON_BROWSING_PHRASES, '你是谁')
         assert.include(DEFAULT_SIMPLE_NON_BROWSING_PHRASES, '晚安')
+    })
+
+    it('fast-skips stable local tasks with external fact exclusions', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, 'stableNonBrowsingTask')
+        assert.include(source, 'stable non-browsing task')
+        assert.include(source, '!hasKeyword(input, excludes)')
+        assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS, '翻译')
+        assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS, '二叉树')
+        assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, '最新')
+        assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, 'api')
+        assert.include(DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS, 'https://')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {

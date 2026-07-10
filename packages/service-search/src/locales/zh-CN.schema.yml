@@ -19,6 +19,8 @@ $inner:
       searchTriggerKeywords: 机械搜索触发关键词。每个关键词之间使用半角逗号分隔。
       enableFastNonBrowsingSkip: 启用简单非浏览请求快路径。命中后跳过搜索路由模型，直接交给主模型回答。
       simpleNonBrowsingPhrases: 简单非浏览短句。每个短句之间使用半角逗号分隔，完全匹配后跳过搜索路由模型。
+      fastSkipStableTaskKeywords: 稳定本地任务关键词。命中且未命中排除词时跳过搜索路由模型。
+      fastSkipStableTaskExcludeKeywords: 稳定本地任务快路径排除词。用于避免跳过最新信息、官网、版本、API、URL 等外部事实请求。
       fastSkipNumericOnly: 纯数字短消息跳过搜索路由模型。
       enableSafeSearchSyntaxSkip: 启用搜索语法讲解快路径。仅用于稳定的合规讲解，不覆盖最新、官方、案例或来源核验类搜索需求。
       safeSearchSyntaxTerms: 搜索语法讲解主题词。每个词之间使用半角逗号分隔。
