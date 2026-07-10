@@ -230,7 +230,7 @@ describe('service-search moderation router parser', () => {
         assert.include(source, 'maxRouterSearchQueries')
         assert.include(source, 'default(2)')
         assert.include(source, 'providerTimeoutMs')
-        assert.include(source, 'default(8000)')
+        assert.include(source, 'default(12000)')
         assert.include(source, 'searchEarlyReturnResults')
         assert.include(source, 'default(3)')
         assert.include(source, 'contextualCompressionMinChars')

@@ -294,7 +294,7 @@ export const Config: Schema<Config> = Schema.intersect([
             Schema.const('average'),
             Schema.const('total')
         ]).default('average') as Schema<Config['multiSourceMode']>,
-        providerTimeoutMs: Schema.number().min(1000).default(8000),
+        providerTimeoutMs: Schema.number().min(1000).default(12000),
         searchEarlyReturnResults: Schema.number().min(1).step(1).default(3),
         summaryModel: Schema.dynamic('model').default('empty'),
 
