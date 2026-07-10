@@ -9,7 +9,12 @@ import { ChatLunaBrowsingChain } from './chain/browsing_chain'
 import {
     Config,
     apply as configApply,
-    DEFAULT_SEARCH_TRIGGER_KEYWORDS
+    DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS,
+    DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS,
+    DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS,
+    DEFAULT_SAFE_SEARCH_SYNTAX_TERMS,
+    DEFAULT_SEARCH_TRIGGER_KEYWORDS,
+    DEFAULT_SIMPLE_NON_BROWSING_PHRASES
 } from './config'
 import { parseRawModelName } from 'koishi-plugin-chatluna/llm-core/utils/count_tokens'
 import { SearchManager } from './provide'
@@ -42,6 +47,17 @@ export function apply(ctx: Context, config: Config) {
     }
 
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
+    config.enableFastNonBrowsingSkip ??= true
+    config.simpleNonBrowsingPhrases ??= DEFAULT_SIMPLE_NON_BROWSING_PHRASES
+    config.fastSkipNumericOnly ??= true
+    config.enableSafeSearchSyntaxSkip ??= true
+    config.safeSearchSyntaxTerms ??= DEFAULT_SAFE_SEARCH_SYNTAX_TERMS
+    config.safeSearchSyntaxContextKeywords ??=
+        DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS
+    config.safeSearchSyntaxExcludeKeywords ??=
+        DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS
+    config.safeSearchSyntaxSearchIntentKeywords ??=
+        DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS
 
     if (ctx.moderation?.config) {
         applyServiceSearchCompatibility(ctx.moderation.config, config, logger)
@@ -194,6 +210,35 @@ export function apply(ctx: Context, config: Config) {
                             .split(/[,，\r\n]+/)
                             .map((keyword) => keyword.trim())
                             .filter((keyword) => keyword.length > 0),
+                        enableFastNonBrowsingSkip:
+                            config.enableFastNonBrowsingSkip,
+                        simpleNonBrowsingPhrases:
+                            config.simpleNonBrowsingPhrases
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        fastSkipNumericOnly: config.fastSkipNumericOnly,
+                        enableSafeSearchSyntaxSkip:
+                            config.enableSafeSearchSyntaxSkip,
+                        safeSearchSyntaxTerms: config.safeSearchSyntaxTerms
+                            .split(/[,，\r\n]+/)
+                            .map((keyword) => keyword.trim())
+                            .filter((keyword) => keyword.length > 0),
+                        safeSearchSyntaxContextKeywords:
+                            config.safeSearchSyntaxContextKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        safeSearchSyntaxExcludeKeywords:
+                            config.safeSearchSyntaxExcludeKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        safeSearchSyntaxSearchIntentKeywords:
+                            config.safeSearchSyntaxSearchIntentKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
                         variableService: ctx.chatluna.promptRenderer,
                         contextManager: ctx.chatluna.contextManager,
                         browserManager

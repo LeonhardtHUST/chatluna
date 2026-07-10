@@ -100,6 +100,14 @@ export interface ChatLunaBrowsingChainInput {
     shortKeywordContextRules: ModerationShortKeywordContextRule[]
     promptAttackWarning: string
     searchTriggerKeywords: string[]
+    enableFastNonBrowsingSkip: boolean
+    simpleNonBrowsingPhrases: string[]
+    fastSkipNumericOnly: boolean
+    enableSafeSearchSyntaxSkip: boolean
+    safeSearchSyntaxTerms: string[]
+    safeSearchSyntaxContextKeywords: string[]
+    safeSearchSyntaxExcludeKeywords: string[]
+    safeSearchSyntaxSearchIntentKeywords: string[]
     variableService: ChatLunaPromptRenderService
     browserManager?: BrowserManager
 }
@@ -158,6 +166,22 @@ export class ChatLunaBrowsingChain
 
     searchTriggerKeywords: string[]
 
+    enableFastNonBrowsingSkip: boolean
+
+    simpleNonBrowsingPhrases: string[]
+
+    fastSkipNumericOnly: boolean
+
+    enableSafeSearchSyntaxSkip: boolean
+
+    safeSearchSyntaxTerms: string[]
+
+    safeSearchSyntaxContextKeywords: string[]
+
+    safeSearchSyntaxExcludeKeywords: string[]
+
+    safeSearchSyntaxSearchIntentKeywords: string[]
+
     private _toolMask?: ToolMask
 
     constructor({
@@ -184,7 +208,15 @@ export class ChatLunaBrowsingChain
         safetyRecheckKeywordGroups,
         shortKeywordContextRules,
         promptAttackWarning,
-        searchTriggerKeywords
+        searchTriggerKeywords,
+        enableFastNonBrowsingSkip,
+        simpleNonBrowsingPhrases,
+        fastSkipNumericOnly,
+        enableSafeSearchSyntaxSkip,
+        safeSearchSyntaxTerms,
+        safeSearchSyntaxContextKeywords,
+        safeSearchSyntaxExcludeKeywords,
+        safeSearchSyntaxSearchIntentKeywords
     }: ChatLunaBrowsingChainInput & {
         chain: ChatLunaLLMChain
         formatQuestionChain: ChatLunaLLMChain
@@ -212,6 +244,15 @@ export class ChatLunaBrowsingChain
         this.shortKeywordContextRules = shortKeywordContextRules
         this.promptAttackWarning = promptAttackWarning
         this.searchTriggerKeywords = searchTriggerKeywords
+        this.enableFastNonBrowsingSkip = enableFastNonBrowsingSkip
+        this.simpleNonBrowsingPhrases = simpleNonBrowsingPhrases
+        this.fastSkipNumericOnly = fastSkipNumericOnly
+        this.enableSafeSearchSyntaxSkip = enableSafeSearchSyntaxSkip
+        this.safeSearchSyntaxTerms = safeSearchSyntaxTerms
+        this.safeSearchSyntaxContextKeywords = safeSearchSyntaxContextKeywords
+        this.safeSearchSyntaxExcludeKeywords = safeSearchSyntaxExcludeKeywords
+        this.safeSearchSyntaxSearchIntentKeywords =
+            safeSearchSyntaxSearchIntentKeywords
         this.variableService = variableService
         this.browserManager = browserManager
         this.searchPrompt = searchPrompt
@@ -246,6 +287,14 @@ export class ChatLunaBrowsingChain
             shortKeywordContextRules,
             promptAttackWarning,
             searchTriggerKeywords,
+            enableFastNonBrowsingSkip,
+            simpleNonBrowsingPhrases,
+            fastSkipNumericOnly,
+            enableSafeSearchSyntaxSkip,
+            safeSearchSyntaxTerms,
+            safeSearchSyntaxContextKeywords,
+            safeSearchSyntaxExcludeKeywords,
+            safeSearchSyntaxSearchIntentKeywords,
             variableService,
             contextManager,
             browserManager,
@@ -297,6 +346,14 @@ export class ChatLunaBrowsingChain
             shortKeywordContextRules,
             promptAttackWarning,
             searchTriggerKeywords,
+            enableFastNonBrowsingSkip,
+            simpleNonBrowsingPhrases,
+            fastSkipNumericOnly,
+            enableSafeSearchSyntaxSkip,
+            safeSearchSyntaxTerms,
+            safeSearchSyntaxContextKeywords,
+            safeSearchSyntaxExcludeKeywords,
+            safeSearchSyntaxSearchIntentKeywords,
             searchPrompt,
             newQuestionPrompt,
             chain,
@@ -542,7 +599,14 @@ export class ChatLunaBrowsingChain
 
         logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
-        if (simpleNonBrowsingRequest(clean)) {
+        if (
+            simpleNonBrowsingRequest(
+                clean,
+                this.enableFastNonBrowsingSkip,
+                this.simpleNonBrowsingPhrases,
+                this.fastSkipNumericOnly
+            )
+        ) {
             const action: SearchAction = {
                 thought: 'simple non-browsing request',
                 safety: 'allow',
@@ -561,7 +625,16 @@ export class ChatLunaBrowsingChain
             )
         }
 
-        if (safeSearchSyntaxTraining(clean)) {
+        if (
+            safeSearchSyntaxTraining(
+                clean,
+                this.enableSafeSearchSyntaxSkip,
+                this.safeSearchSyntaxTerms,
+                this.safeSearchSyntaxContextKeywords,
+                this.safeSearchSyntaxExcludeKeywords,
+                this.safeSearchSyntaxSearchIntentKeywords
+            )
+        ) {
             const action: SearchAction = {
                 thought: 'search syntax risk training does not need browsing',
                 safety: 'allow',
@@ -1130,13 +1203,11 @@ function fixedUrlAction(input: string): SearchAction | null {
 }
 
 function searchTriggered(input: string, searchTriggerKeywords: string[]) {
-    if (safeSearchSyntaxTraining(input)) {
+    if (searchTriggerKeywords.length < 1) {
         return false
     }
 
-    return searchTriggerKeywords.some((keyword) =>
-        input.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())
-    )
+    return hasKeyword(input, searchTriggerKeywords)
 }
 
 function userForbidsSearch(input: string) {
@@ -1145,23 +1216,43 @@ function userForbidsSearch(input: string) {
     )
 }
 
-function simpleNonBrowsingRequest(input: string) {
-    return /^(你好|您好|嗨|hi|hello|在吗|早上好|中午好|下午好|晚上好|晚安|谢谢|感谢|再见|拜拜|你是谁|你喜欢我吗|我喜欢你|[0-9]+)$/i.test(
-        input.trim()
+function simpleNonBrowsingRequest(
+    input: string,
+    enabled: boolean,
+    phrases: string[],
+    numericOnly: boolean
+) {
+    const text = input.trim().toLocaleLowerCase()
+
+    return (
+        enabled &&
+        (phrases.some((keyword) => text === keyword.toLocaleLowerCase()) ||
+            (numericOnly && /^[0-9]+$/.test(text)))
     )
 }
 
-function safeSearchSyntaxTraining(input: string) {
+function safeSearchSyntaxTraining(
+    input: string,
+    enabled: boolean,
+    terms: string[],
+    contexts: string[],
+    excludes: string[],
+    searchIntents: string[]
+) {
     return (
-        /(搜索语法|搜索引擎.*语法|高级搜索|高级.*搜索|检索语法|检索指令|搜索指令|google dork|dork|网盘资料)/i.test(
-            input
-        ) &&
-        /(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
-            input
-        ) &&
-        !/(帮我找|帮我搜|给我.*语法|列出.*语法|可用链接|下载|获取|site:|inurl:|intitle:)/i.test(
-            input
-        )
+        enabled &&
+        hasKeyword(input, terms) &&
+        hasKeyword(input, contexts) &&
+        !hasKeyword(input, excludes) &&
+        !hasKeyword(input, searchIntents)
+    )
+}
+
+function hasKeyword(input: string, keywords: string[]) {
+    const text = input.toLocaleLowerCase()
+
+    return keywords.some((keyword) =>
+        text.includes(keyword.toLocaleLowerCase())
     )
 }
 

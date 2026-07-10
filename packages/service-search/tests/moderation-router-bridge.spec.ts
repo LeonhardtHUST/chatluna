@@ -2,7 +2,11 @@
 
 import { assert } from 'chai'
 import { readFileSync } from 'fs'
-import { Config } from '../src/config'
+import {
+    Config,
+    DEFAULT_SAFE_SEARCH_SYNTAX_TERMS,
+    DEFAULT_SIMPLE_NON_BROWSING_PHRASES
+} from '../src/config'
 import { parseSearchAction } from '../src/utils/parse'
 import {
     formatCompressedContext,
@@ -77,6 +81,11 @@ describe('service-search moderation router parser', () => {
         assert.notInclude(text, 'safetyRecheckKeywordGroups')
         assert.notInclude(text, 'promptAttackWarning')
         assert.include(text, 'searchTriggerKeywords')
+        assert.include(text, 'enableFastNonBrowsingSkip')
+        assert.include(text, 'simpleNonBrowsingPhrases')
+        assert.include(text, 'enableSafeSearchSyntaxSkip')
+        assert.include(text, 'safeSearchSyntaxTerms')
+        assert.include(text, 'safeSearchSyntaxSearchIntentKeywords')
     })
 
     it('uses moderation keyword matcher for service-search safety fallback', () => {
@@ -109,17 +118,24 @@ describe('service-search moderation router parser', () => {
             'utf8'
         )
 
-        assert.include(source, '搜索语法')
-        assert.include(source, '搜索引擎.*语法')
-        assert.include(source, '检索语法')
-        assert.include(source, 'google dork')
-        assert.include(source, '替代流程')
+        assert.include(DEFAULT_SAFE_SEARCH_SYNTAX_TERMS, '搜索语法')
+        assert.include(DEFAULT_SAFE_SEARCH_SYNTAX_TERMS, '搜索引擎高级语法')
+        assert.include(DEFAULT_SAFE_SEARCH_SYNTAX_TERMS, '检索语法')
+        assert.notInclude(
+            DEFAULT_SAFE_SEARCH_SYNTAX_TERMS.toLocaleLowerCase(),
+            'google dork'
+        )
+        assert.notInclude(
+            DEFAULT_SAFE_SEARCH_SYNTAX_TERMS.toLocaleLowerCase(),
+            'dork'
+        )
         assert.include(source, 'safeSearchSyntaxTraining')
+        assert.include(source, 'safeSearchSyntaxSearchIntentKeywords')
         assert.include(
             source,
             'search syntax risk training does not need browsing'
         )
-        assert.include(source, 'return false')
+        assert.include(source, '!hasKeyword(input, searchIntents)')
     })
 
     it('fast-skips simple non-browsing requests after moderation', () => {
@@ -130,8 +146,8 @@ describe('service-search moderation router parser', () => {
 
         assert.include(source, 'simpleNonBrowsingRequest')
         assert.include(source, 'simple non-browsing request')
-        assert.include(source, '你是谁')
-        assert.include(source, '晚安')
+        assert.include(DEFAULT_SIMPLE_NON_BROWSING_PHRASES, '你是谁')
+        assert.include(DEFAULT_SIMPLE_NON_BROWSING_PHRASES, '晚安')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {
