@@ -110,6 +110,8 @@ describe('service-search moderation router parser', () => {
         )
 
         assert.include(source, '搜索语法')
+        assert.include(source, '搜索引擎.*语法')
+        assert.include(source, '检索语法')
         assert.include(source, 'google dork')
         assert.include(source, '替代流程')
         assert.include(source, 'safeSearchSyntaxTraining')
@@ -118,6 +120,18 @@ describe('service-search moderation router parser', () => {
             'search syntax risk training does not need browsing'
         )
         assert.include(source, 'return false')
+    })
+
+    it('fast-skips simple non-browsing requests after moderation', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+
+        assert.include(source, 'simpleNonBrowsingRequest')
+        assert.include(source, 'simple non-browsing request')
+        assert.include(source, '你是谁')
+        assert.include(source, '晚安')
     })
 
     it('adds safe answering guidance for benign high-risk-looking contexts', () => {

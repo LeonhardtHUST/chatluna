@@ -542,6 +542,25 @@ export class ChatLunaBrowsingChain
 
         logger?.debug(`[search-service] precheck: ${JSON.stringify(precheck)}`)
 
+        if (simpleNonBrowsingRequest(clean)) {
+            const action: SearchAction = {
+                thought: 'simple non-browsing request',
+                safety: 'allow',
+                action: 'skip',
+                content: []
+            }
+            logger?.debug(`action: ${JSON.stringify(action)}`)
+
+            return await this._answer(
+                requests,
+                stream,
+                signal,
+                session,
+                maxToken,
+                events
+            )
+        }
+
         if (safeSearchSyntaxTraining(clean)) {
             const action: SearchAction = {
                 thought: 'search syntax risk training does not need browsing',
@@ -1126,9 +1145,17 @@ function userForbidsSearch(input: string) {
     )
 }
 
+function simpleNonBrowsingRequest(input: string) {
+    return /^(你好|您好|嗨|hi|hello|在吗|早上好|中午好|下午好|晚上好|晚安|谢谢|感谢|再见|拜拜|你是谁|你喜欢我吗|我喜欢你|[0-9]+)$/i.test(
+        input.trim()
+    )
+}
+
 function safeSearchSyntaxTraining(input: string) {
     return (
-        /(搜索语法|高级搜索|搜索指令|google dork|dork|网盘资料)/i.test(input) &&
+        /(搜索语法|搜索引擎.*语法|高级搜索|高级.*搜索|检索语法|检索指令|搜索指令|google dork|dork|网盘资料)/i.test(
+            input
+        ) &&
         /(风险|替代流程|替代方案|合规|培训|话术|提醒|不要|不应|不能|禁止|说明)/i.test(
             input
         ) &&
