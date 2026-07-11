@@ -757,9 +757,24 @@ export class ChatLunaBrowsingChain
                     ].join('\n')
                 )
             )
+            const safeInput = new HumanMessage(
+                '请用用户输入的语言，从安全培训和合规替代流程角度解释这类高风险信息检索行为的风险、边界、处理流程和替代做法。不要提供可复用搜索语法、检索关键词、获取路径、脚本、命令或步骤。'
+            )
+            const safeRequests: ChainValues = {
+                ...requests,
+                input: safeInput
+            }
+            safeRequests['variables'] = Object.assign(
+                {},
+                requests['variables'],
+                {
+                    prompt: getMessageContent(safeInput.content)
+                }
+            )
+            safeRequests['variables_hide'] = safeRequests['variables']
 
             return await this._answer(
-                requests,
+                safeRequests,
                 stream,
                 signal,
                 session,
