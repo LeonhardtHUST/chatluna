@@ -202,6 +202,89 @@ export const DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS = [
     '上网'
 ].join(',')
 
+export const DEFAULT_SAFE_RISK_EXPLANATION_LABELS = [
+    'search_misuse',
+    'search_misuse_risk',
+    'privacy_linkage',
+    'privacy_osint_risk',
+    'phishing_social',
+    'phishing_social_risk',
+    'credential_abuse',
+    'credential_abuse_risk',
+    'cyber_offense',
+    'stealth_code',
+    'malware_persistence',
+    'biohazard_protocol',
+    'controlled_reaction',
+    'controlled_reaction_protocol',
+    'dangerous_experiment_risk',
+    'minor_safety',
+    'harassment_brigading',
+    'political_mobilization'
+].join(',')
+
+export const DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS = [
+    '风险',
+    '边界',
+    '合规',
+    '防范',
+    '说明',
+    '有哪些',
+    '如何避免',
+    '替代流程',
+    '安全建议',
+    '危害',
+    '注意事项',
+    '培训',
+    '教育',
+    '科普',
+    'risk',
+    'risks',
+    'boundary',
+    'boundaries',
+    'compliance',
+    'prevention',
+    'mitigation'
+].join(',')
+
+export const DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS = [
+    '最新',
+    '最近',
+    '当前',
+    '官方',
+    '官网',
+    '政策',
+    '法规',
+    '案例',
+    '事件',
+    '新闻',
+    '变化',
+    '更新',
+    '来源',
+    '出处',
+    '原文',
+    '核实',
+    '验证',
+    '查一下',
+    '搜索一下',
+    '帮我搜索',
+    '联网',
+    '上网',
+    '语法',
+    '下载',
+    '获取',
+    '脚本',
+    '命令',
+    '执行',
+    '步骤',
+    'site:',
+    'inurl:',
+    'intitle:',
+    'filetype:',
+    'http://',
+    'https://'
+].join(',')
+
 export interface SafetyBlockKeywordGroup {
     name: string
     keywords: string
@@ -262,6 +345,10 @@ export interface Config extends ChatLunaPlugin.Config {
     safeSearchSyntaxContextKeywords: string
     safeSearchSyntaxExcludeKeywords: string
     safeSearchSyntaxSearchIntentKeywords: string
+    enableSafeRiskExplanationSkip: boolean
+    safeRiskExplanationLabels: string
+    safeRiskExplanationContextKeywords: string
+    safeRiskExplanationExcludeKeywords: string
 }
 
 export const Config: Schema<Config> = Schema.intersect([
@@ -340,7 +427,17 @@ export const Config: Schema<Config> = Schema.intersect([
             .default(DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS),
         safeSearchSyntaxSearchIntentKeywords: Schema.string()
             .role('textarea', { rows: [2, 6] })
-            .default(DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS)
+            .default(DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS),
+        enableSafeRiskExplanationSkip: Schema.boolean().default(true),
+        safeRiskExplanationLabels: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_RISK_EXPLANATION_LABELS),
+        safeRiskExplanationContextKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS),
+        safeRiskExplanationExcludeKeywords: Schema.string()
+            .role('textarea', { rows: [2, 6] })
+            .default(DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS)
     }),
 
     Schema.object({

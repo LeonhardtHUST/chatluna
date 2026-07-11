@@ -29,6 +29,10 @@ $inner:
       safeSearchSyntaxContextKeywords: 搜索语法讲解上下文词。命中主题词和上下文词时才可能跳过搜索路由。
       safeSearchSyntaxExcludeKeywords: 搜索语法快路径排除词。命中后交回正常搜索路由判断。
       safeSearchSyntaxSearchIntentKeywords: 显式搜索意图词。命中后交回正常搜索路由判断，避免跳过最新政策、案例、官方说明或来源核验。
+      enableSafeRiskExplanationSkip: 启用安全风险解释快路径。命中后跳过搜索路由模型，直接给出高层安全解释。
+      safeRiskExplanationLabels: 安全风险解释标签。复用内容安全内核输出的标签，每个标签之间使用半角逗号分隔。
+      safeRiskExplanationContextKeywords: 安全风险解释上下文词。命中风险标签和这些上下文词时才可能跳过搜索路由。
+      safeRiskExplanationExcludeKeywords: 安全风险解释快路径排除词。命中最新、官方、案例、来源、执行步骤等词时交回正常搜索路由。
       multiSourceMode:
           $desc: 多源模式。
           $inner:

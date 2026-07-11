@@ -11,6 +11,9 @@ import {
     apply as configApply,
     DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS,
     DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_LABELS,
     DEFAULT_SAFE_SEARCH_SYNTAX_CONTEXT_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS,
     DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS,
@@ -51,7 +54,7 @@ export function apply(ctx: Context, config: Config) {
     config.searchTriggerKeywords ??= DEFAULT_SEARCH_TRIGGER_KEYWORDS
     config.contextualCompression ??= false
     config.contextualCompressionMinChars ??= 6000
-    config.providerTimeoutMs ??= 8000
+    config.providerTimeoutMs ??= 12000
     config.searchEarlyReturnResults ??= 3
     config.enableFastNonBrowsingSkip ??= true
     config.simpleNonBrowsingPhrases ??= DEFAULT_SIMPLE_NON_BROWSING_PHRASES
@@ -67,6 +70,12 @@ export function apply(ctx: Context, config: Config) {
         DEFAULT_SAFE_SEARCH_SYNTAX_EXCLUDE_KEYWORDS
     config.safeSearchSyntaxSearchIntentKeywords ??=
         DEFAULT_SAFE_SEARCH_SYNTAX_SEARCH_INTENT_KEYWORDS
+    config.enableSafeRiskExplanationSkip ??= true
+    config.safeRiskExplanationLabels ??= DEFAULT_SAFE_RISK_EXPLANATION_LABELS
+    config.safeRiskExplanationContextKeywords ??=
+        DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS
+    config.safeRiskExplanationExcludeKeywords ??=
+        DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS
 
     if (ctx.moderation?.config) {
         applyServiceSearchCompatibility(ctx.moderation.config, config, logger)
@@ -266,6 +275,23 @@ export function apply(ctx: Context, config: Config) {
                                 .filter((keyword) => keyword.length > 0),
                         safeSearchSyntaxSearchIntentKeywords:
                             config.safeSearchSyntaxSearchIntentKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        enableSafeRiskExplanationSkip:
+                            config.enableSafeRiskExplanationSkip,
+                        safeRiskExplanationLabels:
+                            config.safeRiskExplanationLabels
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        safeRiskExplanationContextKeywords:
+                            config.safeRiskExplanationContextKeywords
+                                .split(/[,，\r\n]+/)
+                                .map((keyword) => keyword.trim())
+                                .filter((keyword) => keyword.length > 0),
+                        safeRiskExplanationExcludeKeywords:
+                            config.safeRiskExplanationExcludeKeywords
                                 .split(/[,，\r\n]+/)
                                 .map((keyword) => keyword.trim())
                                 .filter((keyword) => keyword.length > 0),

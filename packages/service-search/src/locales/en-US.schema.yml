@@ -28,6 +28,10 @@ $inner:
       safeSearchSyntaxContextKeywords: 'Search-syntax explanation context keywords. Topic and context keywords must both match before skipping the search router.'
       safeSearchSyntaxExcludeKeywords: 'Search-syntax fast-path exclusion keywords. Matching requests return to normal search-router judgment.'
       safeSearchSyntaxSearchIntentKeywords: 'Explicit search-intent keywords. Matching requests return to normal search-router judgment for latest policies, cases, official docs, or source verification.'
+      enableSafeRiskExplanationSkip: 'Enable fast path for safe risk-explanation requests. Matching requests skip the search router model and answer at a high level.'
+      safeRiskExplanationLabels: 'Safe risk-explanation labels from the moderation kernel. Separate labels with half-width commas.'
+      safeRiskExplanationContextKeywords: 'Safe risk-explanation context keywords. A risk label and these context keywords must both match before skipping the search router.'
+      safeRiskExplanationExcludeKeywords: 'Safe risk-explanation fast-path exclusions. Matching latest, official, case, source, or execution-step requests return to normal search-router judgment.'
       multiSourceMode:
           $desc: 'Multi-source mode.'
           $inner:

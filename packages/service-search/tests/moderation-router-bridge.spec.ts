@@ -6,6 +6,9 @@ import {
     Config,
     DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS,
     DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS,
+    DEFAULT_SAFE_RISK_EXPLANATION_LABELS,
     DEFAULT_SAFE_SEARCH_SYNTAX_TERMS,
     DEFAULT_SIMPLE_NON_BROWSING_PHRASES
 } from '../src/config'
@@ -146,6 +149,42 @@ describe('service-search moderation router parser', () => {
         assert.include(source, '!hasKeyword(input, searchIntents)')
     })
 
+    it('fast-skips safe risk explanations from moderation labels', () => {
+        const source = readFileSync(
+            require.resolve('../src/chain/browsing_chain'),
+            'utf8'
+        )
+        const text = JSON.stringify(
+            (Config as unknown as { toJSON(): unknown }).toJSON()
+        )
+
+        assert.include(text, 'enableSafeRiskExplanationSkip')
+        assert.include(text, 'safeRiskExplanationLabels')
+        assert.include(text, 'safeRiskExplanationContextKeywords')
+        assert.include(text, 'safeRiskExplanationExcludeKeywords')
+        assert.include(DEFAULT_SAFE_RISK_EXPLANATION_LABELS, 'search_misuse_risk')
+        assert.include(DEFAULT_SAFE_RISK_EXPLANATION_CONTEXT_KEYWORDS, '风险')
+        assert.include(DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS, '最新')
+        assert.include(DEFAULT_SAFE_RISK_EXPLANATION_EXCLUDE_KEYWORDS, 'site:')
+        assert.notInclude(
+            DEFAULT_SAFE_RISK_EXPLANATION_LABELS.toLocaleLowerCase(),
+            'google dork'
+        )
+        assert.notInclude(
+            DEFAULT_SAFE_RISK_EXPLANATION_LABELS.toLocaleLowerCase(),
+            'dork'
+        )
+        assert.include(source, 'safeRiskExplanation')
+        assert.include(source, 'decision.labels')
+        assert.include(source, 'decision.reasons.join')
+        assert.include(source, 'precheck.categories')
+        assert.include(source, 'semantic.safe_context')
+        assert.include(
+            source,
+            'safe risk explanation does not need browsing'
+        )
+    })
+
     it('fast-skips simple non-browsing requests after moderation', () => {
         const source = readFileSync(
             require.resolve('../src/chain/browsing_chain'),
@@ -227,6 +266,7 @@ describe('service-search moderation router parser', () => {
 
         assert.include(source, 'DEFAULT_FAST_SKIP_STABLE_TASK_KEYWORDS')
         assert.include(source, 'DEFAULT_FAST_SKIP_STABLE_TASK_EXCLUDE_KEYWORDS')
+        assert.include(source, 'DEFAULT_SAFE_RISK_EXPLANATION_LABELS')
         assert.include(source, 'maxRouterSearchQueries')
         assert.include(source, 'default(2)')
         assert.include(source, 'providerTimeoutMs')

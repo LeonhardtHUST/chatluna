@@ -113,6 +113,10 @@ export interface ChatLunaBrowsingChainInput {
     safeSearchSyntaxContextKeywords: string[]
     safeSearchSyntaxExcludeKeywords: string[]
     safeSearchSyntaxSearchIntentKeywords: string[]
+    enableSafeRiskExplanationSkip: boolean
+    safeRiskExplanationLabels: string[]
+    safeRiskExplanationContextKeywords: string[]
+    safeRiskExplanationExcludeKeywords: string[]
     variableService: ChatLunaPromptRenderService
     browserManager?: BrowserManager
 }
@@ -197,6 +201,14 @@ export class ChatLunaBrowsingChain
 
     safeSearchSyntaxSearchIntentKeywords: string[]
 
+    enableSafeRiskExplanationSkip: boolean
+
+    safeRiskExplanationLabels: string[]
+
+    safeRiskExplanationContextKeywords: string[]
+
+    safeRiskExplanationExcludeKeywords: string[]
+
     private _toolMask?: ToolMask
 
     constructor({
@@ -236,7 +248,11 @@ export class ChatLunaBrowsingChain
         safeSearchSyntaxTerms,
         safeSearchSyntaxContextKeywords,
         safeSearchSyntaxExcludeKeywords,
-        safeSearchSyntaxSearchIntentKeywords
+        safeSearchSyntaxSearchIntentKeywords,
+        enableSafeRiskExplanationSkip,
+        safeRiskExplanationLabels,
+        safeRiskExplanationContextKeywords,
+        safeRiskExplanationExcludeKeywords
     }: ChatLunaBrowsingChainInput & {
         chain: ChatLunaLLMChain
         formatQuestionChain: ChatLunaLLMChain
@@ -279,6 +295,12 @@ export class ChatLunaBrowsingChain
         this.safeSearchSyntaxExcludeKeywords = safeSearchSyntaxExcludeKeywords
         this.safeSearchSyntaxSearchIntentKeywords =
             safeSearchSyntaxSearchIntentKeywords
+        this.enableSafeRiskExplanationSkip = enableSafeRiskExplanationSkip
+        this.safeRiskExplanationLabels = safeRiskExplanationLabels
+        this.safeRiskExplanationContextKeywords =
+            safeRiskExplanationContextKeywords
+        this.safeRiskExplanationExcludeKeywords =
+            safeRiskExplanationExcludeKeywords
         this.variableService = variableService
         this.browserManager = browserManager
         this.searchPrompt = searchPrompt
@@ -326,6 +348,10 @@ export class ChatLunaBrowsingChain
             safeSearchSyntaxContextKeywords,
             safeSearchSyntaxExcludeKeywords,
             safeSearchSyntaxSearchIntentKeywords,
+            enableSafeRiskExplanationSkip,
+            safeRiskExplanationLabels,
+            safeRiskExplanationContextKeywords,
+            safeRiskExplanationExcludeKeywords,
             variableService,
             contextManager,
             browserManager,
@@ -385,6 +411,10 @@ export class ChatLunaBrowsingChain
             safeSearchSyntaxContextKeywords,
             safeSearchSyntaxExcludeKeywords,
             safeSearchSyntaxSearchIntentKeywords,
+            enableSafeRiskExplanationSkip,
+            safeRiskExplanationLabels,
+            safeRiskExplanationContextKeywords,
+            safeRiskExplanationExcludeKeywords,
             fastSkipStableTaskKeywords,
             fastSkipStableTaskExcludeKeywords,
             searchPrompt,
@@ -592,6 +622,19 @@ export class ChatLunaBrowsingChain
                 `[search-service] moderation: ${JSON.stringify(decision)}`
             )
 
+            if (decision.action === 'allow') {
+                precheck = {
+                    safety: 'allow',
+                    risk_level: 'low',
+                    categories: decision.labels,
+                    search_allowed: true,
+                    url_allowed: true,
+                    policy_hint:
+                        decision.reasons.join('; ') ||
+                        'No moderation safety match.'
+                }
+            }
+
             if (!moderation.config.shadowMode) {
                 if (
                     decision.action === 'block' ||
@@ -699,6 +742,35 @@ export class ChatLunaBrowsingChain
         ) {
             const action: SearchAction = {
                 thought: 'search syntax risk training does not need browsing',
+                safety: 'allow',
+                action: 'skip',
+                content: []
+            }
+            logger?.debug(`action: ${JSON.stringify(action)}`)
+            addAllowedSafeHandling(clean, chatHistory)
+
+            return await this._answer(
+                requests,
+                stream,
+                signal,
+                session,
+                maxToken,
+                events
+            )
+        }
+
+        if (
+            safeRiskExplanation(
+                clean,
+                precheck,
+                this.enableSafeRiskExplanationSkip,
+                this.safeRiskExplanationLabels,
+                this.safeRiskExplanationContextKeywords,
+                this.safeRiskExplanationExcludeKeywords
+            )
+        ) {
+            const action: SearchAction = {
+                thought: 'safe risk explanation does not need browsing',
                 safety: 'allow',
                 action: 'skip',
                 content: []
@@ -1230,7 +1302,7 @@ type SafetyPrecheck =
     | {
           safety: 'allow'
           risk_level: 'low'
-          categories: []
+          categories: string[]
           search_allowed: true
           url_allowed: true
           policy_hint: string
@@ -1341,6 +1413,34 @@ function safeSearchSyntaxTraining(
         hasKeyword(input, contexts) &&
         !hasKeyword(input, excludes) &&
         !hasKeyword(input, searchIntents)
+    )
+}
+
+function safeRiskExplanation(
+    input: string,
+    precheck: SafetyPrecheck,
+    enabled: boolean,
+    labels: string[],
+    contexts: string[],
+    excludes: string[]
+) {
+    const matched = precheck.categories.some((item) =>
+        labels.some(
+            (label) => item.toLocaleLowerCase() === label.toLocaleLowerCase()
+        )
+    )
+    const safe = precheck.categories.some(
+        (item) => item.toLocaleLowerCase() === 'semantic.safe_context'
+    )
+
+    return (
+        enabled &&
+        precheck.safety === 'allow' &&
+        matched &&
+        (safe || precheck.policy_hint.includes('semantic.safe_context')) &&
+        hasKeyword(input, contexts) &&
+        !hasKeyword(input, excludes) &&
+        !/https?:\/\/\S+/i.test(input)
     )
 }
 
