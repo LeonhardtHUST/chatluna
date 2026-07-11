@@ -747,7 +747,16 @@ export class ChatLunaBrowsingChain
                 content: []
             }
             logger?.debug(`action: ${JSON.stringify(action)}`)
-            addAllowedSafeHandling(clean, chatHistory)
+            chatHistory.push(
+                new SystemMessage(
+                    [
+                        'The current request is a stable risk explanation or compliance-boundary question.',
+                        'Answer safely at a high level with risks, boundaries, and compliant alternatives.',
+                        'Do not provide actionable search syntax, acquisition paths, scripts, commands, or step-by-step abuse guidance.',
+                        'Do not use a fixed safety refusal when the user asks for risk, compliance, prevention, or alternatives.'
+                    ].join('\n')
+                )
+            )
 
             return await this._answer(
                 requests,

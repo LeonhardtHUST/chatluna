@@ -183,6 +183,10 @@ describe('service-search moderation router parser', () => {
             source,
             'safe risk explanation does not need browsing'
         )
+        assert.include(
+            source,
+            'stable risk explanation or compliance-boundary question'
+        )
     })
 
     it('fast-skips simple non-browsing requests after moderation', () => {
