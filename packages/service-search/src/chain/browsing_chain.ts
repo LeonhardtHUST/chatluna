@@ -747,34 +747,10 @@ export class ChatLunaBrowsingChain
                 content: []
             }
             logger?.debug(`action: ${JSON.stringify(action)}`)
-            chatHistory.push(
-                new SystemMessage(
-                    [
-                        'The current request is a stable risk explanation or compliance-boundary question.',
-                        'Answer safely at a high level with risks, boundaries, and compliant alternatives.',
-                        'Do not provide actionable search syntax, acquisition paths, scripts, commands, or step-by-step abuse guidance.',
-                        'Do not use a fixed safety refusal when the user asks for risk, compliance, prevention, or alternatives.'
-                    ].join('\n')
-                )
-            )
-            const safeInput = new HumanMessage(
-                '请用用户输入的语言，从安全培训和合规替代流程角度解释这类高风险信息检索行为的风险、边界、处理流程和替代做法。不要提供可复用搜索语法、检索关键词、获取路径、脚本、命令或步骤。'
-            )
-            const safeRequests: ChainValues = {
-                ...requests,
-                input: safeInput
-            }
-            safeRequests['variables'] = Object.assign(
-                {},
-                requests['variables'],
-                {
-                    prompt: getMessageContent(safeInput.content)
-                }
-            )
-            safeRequests['variables_hide'] = safeRequests['variables']
+            addAllowedSafeHandling(clean, chatHistory)
 
             return await this._answer(
-                safeRequests,
+                requests,
                 stream,
                 signal,
                 session,
@@ -800,16 +776,26 @@ export class ChatLunaBrowsingChain
                 content: []
             }
             logger?.debug(`action: ${JSON.stringify(action)}`)
-            addAllowedSafeHandling(clean, chatHistory)
 
-            return await this._answer(
-                requests,
-                stream,
-                signal,
-                session,
-                maxToken,
-                events
-            )
+            return {
+                message: new AIMessage(
+                    [
+                        '可以从安全培训和合规替代流程角度说明，但不应提供可复用的搜索语法、检索关键词或获取路径。',
+                        '',
+                        '主要风险包括：',
+                        '1. 未经授权访问、下载或扩散资料，可能触犯平台规则、隐私保护要求或法律法规。',
+                        '2. 疑似泄露资料可能包含个人信息、商业秘密、凭证、恶意文件或被篡改内容。',
+                        '3. 继续检索、转发或保存敏感内容，会扩大影响范围，也会增加审计和处置难度。',
+                        '',
+                        '更合规的替代流程是：',
+                        '1. 不继续搜索、下载、整理或传播疑似敏感资料。',
+                        '2. 只记录最小必要信息，例如发现时间、来源平台类型和风险描述。',
+                        '3. 通过组织内的安全、法务、数据保护或平台举报流程提交线索。',
+                        '4. 对内部资料加强访问控制、外发审批、水印追踪、日志审计和泄露应急预案。',
+                        '5. 培训重点放在识别风险、及时上报和降低再次泄露，而不是演示如何寻找资料。'
+                    ].join('\n')
+                )
+            }
         }
 
         // recreate questions
